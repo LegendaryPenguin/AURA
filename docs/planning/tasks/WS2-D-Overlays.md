@@ -2,8 +2,8 @@
 
 | Field       | Value                  |
 | ----------- | ---------------------- |
-| **Status**  | `Todo`                 |
-| **Owner**   | _Unassigned_           |
+| **Status**  | `Done`                 |
+| **Owner**   | `Farrell`              |
 | **Phase**   | Phase 1                |
 | **Stream**  | WS2 — Client Application |
 
