@@ -2,8 +2,8 @@
 
 | Field       | Value                         |
 | ----------- | ----------------------------- |
-| **Status**  | `Todo`                        |
-| **Owner**   | _Unassigned_                  |
+| **Status**  | `Done`                        |
+| **Owner**   | `Farrell`                     |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
 
@@ -39,10 +39,10 @@ Each stage implements the `PipelineStage` interface. Each stage receives and ret
 
 ## Verification
 
-- [ ] With mock backends: snapshot pipeline returns valid overlay response for test image
-- [ ] Preprocess rejects non-JPEG input with clear error
-- [ ] Preprocess resizes to configured dimensions
-- [ ] Transcribe falls back to default query when audio is empty
-- [ ] Per-stage timeout fires and returns 408 (test with a mock that sleeps)
-- [ ] Postprocess validates output against schema and rejects malformed VLM output
-- [ ] Unit test per stage: each stage independently transforms `PipelineContext` correctly
+- [x] With mock backends: snapshot pipeline returns valid overlay response for test image
+- [x] Preprocess rejects non-JPEG input with clear error
+- [x] Preprocess resizes to configured dimensions
+- [x] Transcribe falls back to default query when audio is empty
+- [x] Per-stage timeout fires and returns 408 (test with a mock that sleeps)
+- [x] Postprocess validates output against schema and rejects malformed VLM output
+- [x] Unit test per stage: each stage independently transforms `PipelineContext` correctly
