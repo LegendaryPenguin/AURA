@@ -4,6 +4,7 @@
 | Field      | Value                    |
 | ---------- | ------------------------ |
 | **Status** | `Done`                   |
+| **Maturity** | `Implemented`         |
 | **Owner**  | Farrell                  |
 | **Phase**  | Phase 0                  |
 | **Stream** | WS2 — Client Application |
@@ -47,3 +48,50 @@
 - ConfidenceIndicator shows correct color for confidence thresholds (>0.8=green, >0.5=yellow, else red)
 - StatusBar reflects server connection state (connected/disconnected/reconnecting)
 - Unit test: `useFallback` hook returns hardcoded payload matching schema
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS2-D
+- Downstream tasks: WS2-H, Phase 0 demo
+- Runtime dependencies (routes/pipelines/config): fallback behavior and status indicators must match phase/runtime state.
+- Contract dependencies (schemas/interfaces): fallback payload must remain overlay-schema compatible.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS2-E
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: fallback demo path no longer reliably visible or status indicators regress.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS2 owner
+- Re-promotion criteria: Phase 0 fallback and UI verification checks pass.
+
+---
+
+## Residual Risks
+
+- UI state may drift from backend reality without integration checks. Owner: WS2. Mitigation: app-shell integration coverage.

@@ -3,6 +3,7 @@
 | Field       | Value                         |
 | ----------- | ----------------------------- |
 | **Status**  | `Done`                        |
+| **Maturity** | `Implemented`               |
 | **Owner**   | `Farrell`                     |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
@@ -37,3 +38,50 @@
 - [x] Concurrent `POST /analyze` requests: first gets 200, second gets 429
 - [x] Unit test: rate limiter correctly blocks concurrent requests and releases after completion
 - [x] Integration touchpoint: confirm `_extract_request_payload` output keys match `shared/schemas/analysis_request.json` field names
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS1-A, WS3-A, WS3-D
+- Downstream tasks: WS2-F, Phase 1 integration gate
+- Runtime dependencies (routes/pipelines/config): `/analyze` and `/health` route behavior, rate limit controls.
+- Contract dependencies (schemas/interfaces): request/response schema conformance and `PipelineContext` field contract.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS3-B
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: route contract mismatch, pipeline handoff failure, or rate-limit regressions.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS3 owner
+- Re-promotion criteria: route unit/integration and contract gates pass.
+
+---
+
+## Residual Risks
+
+- Alias handling may mask contract drift if not explicitly tracked. Owner: WS3. Mitigation: route-boundary contract tests.

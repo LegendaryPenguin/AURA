@@ -3,6 +3,7 @@
 | Field       | Value                  |
 | ----------- | ---------------------- |
 | **Status**  | `Todo`                 |
+| **Maturity** | `Planned`            |
 | **Owner**   | _Unassigned_           |
 | **Phase**   | Phase 4                |
 | **Stream**  | WS2 — Client Application |
@@ -34,3 +35,50 @@
 - [ ] Frame throttling: at 15fps config, no more than 15 frames/second are sent
 - [ ] Session close sends proper close frame and cleans up resources
 - [ ] Unit test: `useWebSocket` hook manages connect/disconnect/message lifecycle
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS3-C, WS3-E
+- Downstream tasks: WS2-H, Phase 4 UX
+- Runtime dependencies (routes/pipelines/config): `/stream` route availability and session lifecycle.
+- Contract dependencies (schemas/interfaces): stream frame and overlay response payload contracts.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS2-G
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: websocket lifecycle instability or stream contract failures.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS2 owner
+- Re-promotion criteria: websocket verification checklist and integration checks pass.
+
+---
+
+## Residual Risks
+
+- Network instability and browser websocket behavior variance. Owner: WS2. Mitigation: reconnect and timeout coverage.

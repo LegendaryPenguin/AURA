@@ -3,6 +3,7 @@
 | Field       | Value                      |
 | ----------- | -------------------------- |
 | **Status**  | `Done`                     |
+| **Maturity** | `Implemented`            |
 | **Owner**   | `Farrell`                  |
 | **Sprint**  | Sprint 0 (Foundation)      |
 | **Stream**  | WS1 — Foundation & Contracts |
@@ -47,3 +48,50 @@
 - [x] Mock `/analyze` returns a schema-valid overlay response for any valid request
 - [x] Mock `/stream` accepts a WebSocket connection and returns overlay frames
 - [x] All scripts are executable and have correct shebangs
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS1-C
+- Downstream tasks: WS2-F, WS3-A, WS4-A
+- Runtime dependencies (routes/pipelines/config): startup and dev scripts must stay consistent with config/env defaults and documented runbook.
+- Contract dependencies (schemas/interfaces): mock server responses must stay schema-valid.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS1-D
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: script/runtime mismatch, broken startup flow, or invalid mock responses.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS1 owner
+- Re-promotion criteria: startup health checks and mock contract checks pass.
+
+---
+
+## Residual Risks
+
+- Environment variability can break script assumptions. Owner: WS1. Mitigation: preflight checks and documented defaults.

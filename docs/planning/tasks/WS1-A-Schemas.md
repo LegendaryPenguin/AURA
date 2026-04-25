@@ -4,6 +4,7 @@
 | Field      | Value                        |
 | ---------- | ---------------------------- |
 | **Status** | `Done`                       |
+| **Maturity** | `Implemented`             |
 | **Owner**  | `Farrell`                    |
 | **Sprint** | Sprint 0 (Foundation)        |
 | **Stream** | WS1 — Foundation & Contracts |
@@ -38,3 +39,50 @@
 - TypeScript types compile with zero errors
 - 5 golden response fixtures validate against the schema
 - 3 intentionally malformed fixtures are correctly rejected
+
+---
+
+## Dependencies
+
+- Upstream tasks: None
+- Downstream tasks: WS2-F, WS3-B, WS3-F
+- Runtime dependencies (routes/pipelines/config): Schema consumers must use canonical request/response field names.
+- Contract dependencies (schemas/interfaces): `shared/schemas/*.json`, `shared/schemas/types.ts`
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS1-A
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: Contract-breaking schema change or failed contract gate.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS1 owner
+- Re-promotion criteria: Contract tests and dependent task checks pass.
+
+---
+
+## Residual Risks
+
+- Schema evolution can outpace downstream adoption. Owner: WS1. Mitigation: append-only schema policy plus contract gates.

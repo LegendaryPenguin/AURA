@@ -3,6 +3,7 @@
 | Field       | Value                            |
 | ----------- | -------------------------------- |
 | **Status**  | `Todo`                           |
+| **Maturity** | `Planned`                      |
 | **Owner**   | _Unassigned_                     |
 | **Phase**   | Phase 4                          |
 | **Stream**  | WS4 — Inference & Tracking       |
@@ -36,3 +37,50 @@
 - [ ] Track manager: destroy tracker releases memory (check with `gc.get_referrers`)
 - [ ] Track manager: idle timeout fires and destroys tracker
 - [ ] Unit test: process 50 frames through tracker without memory growth
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS4-C, WS3-E
+- Downstream tasks: WS3-C, WS2-G, Phase 4
+- Runtime dependencies (routes/pipelines/config): tracker state machine and session lifecycle.
+- Contract dependencies (schemas/interfaces): tracker backend state and propagation contract.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS4-E
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: tracker state or memory lifecycle regressions.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS4 owner
+- Re-promotion criteria: tracking state-machine and memory checks pass.
+
+---
+
+## Residual Risks
+
+- Long-session tracking drift and memory pressure under production load. Owner: WS4. Mitigation: stress tests and timeout cleanup gates.

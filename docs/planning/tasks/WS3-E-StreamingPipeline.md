@@ -3,6 +3,7 @@
 | Field       | Value                         |
 | ----------- | ----------------------------- |
 | **Status**  | `Todo`                        |
+| **Maturity** | `Planned`                   |
 | **Owner**   | _Unassigned_                  |
 | **Phase**   | Phase 4                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
@@ -36,3 +37,50 @@
 - [ ] Frame-drop logic: old frames are dropped, fresh frames are processed
 - [ ] VLM re-query fires on configured interval during streaming
 - [ ] Unit test: streaming pipeline state machine transitions: INIT → SEMANTIC → TRACKING → RE-QUERY
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS4-C, WS4-D, WS4-E
+- Downstream tasks: WS3-C, WS2-G
+- Runtime dependencies (routes/pipelines/config): streaming pipeline orchestration and queue/drop policy.
+- Contract dependencies (schemas/interfaces): stage interfaces and streaming response payload contracts.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS3-E
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: streaming lane regressions or async stage blocking behavior.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS3 owner
+- Re-promotion criteria: streaming verification and state-machine tests pass.
+
+---
+
+## Residual Risks
+
+- Throughput/performance behavior may vary under realistic frame load. Owner: WS3. Mitigation: load-oriented tests.

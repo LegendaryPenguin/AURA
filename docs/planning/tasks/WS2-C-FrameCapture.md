@@ -3,6 +3,7 @@
 | Field       | Value                  |
 | ----------- | ---------------------- |
 | **Status**  | `Done`                 |
+| **Maturity** | `Implemented`        |
 | **Owner**   | `Farrell`              |
 | **Phase**   | Phase 1                |
 | **Stream**  | WS2 — Client Application |
@@ -37,3 +38,50 @@
 
 Completed:
 - Mapper unit-test coverage is tracked and validated by the existing WS2 client test suite pass in this environment; no WS2-C-owned test file changes were required.
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS2-A
+- Downstream tasks: WS2-F, WS2-H
+- Runtime dependencies (routes/pipelines/config): capture output consumed by analyze request and overlay mapping.
+- Contract dependencies (schemas/interfaces): normalized bbox conventions from shared schemas.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS2-C
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: coordinate mapping/capture regressions affecting overlay placement.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS2 owner
+- Re-promotion criteria: frame capture and mapping checks pass.
+
+---
+
+## Residual Risks
+
+- Device-specific viewport/cropping edge cases. Owner: WS2. Mitigation: maintain mapping test coverage and manual checks.
