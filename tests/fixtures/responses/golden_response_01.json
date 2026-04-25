@@ -1,12 +1,19 @@
 {
+  "request_id": "fixture-request-01",
   "session_id": "fixture-session-01",
+  "created_at": "2026-01-01T00:00:01Z",
   "overlays": [
     {
       "label": "Demo object",
-      "bbox": [0.21, 0.23, 0.52, 0.60],
+      "bbox": {
+        "x": 0.21,
+        "y": 0.23,
+        "width": 0.31,
+        "height": 0.37
+      },
       "confidence": 0.94,
       "overlay_type": "diagnostic",
-      "ui_layer": "primary",
+      "ui_layer": "foreground",
       "action_required": false
     }
   ]

@@ -2,8 +2,8 @@
 
 | Field       | Value                  |
 | ----------- | ---------------------- |
-| **Status**  | `Todo`                 |
-| **Owner**   | _Unassigned_           |
+| **Status**  | `Done`                 |
+| **Owner**   | Farrell                |
 | **Phase**   | Phase 1                |
 | **Stream**  | WS2 — Client Application |
 
@@ -29,8 +29,8 @@
 
 ## Verification
 
-- [ ] Against mock server: `POST /analyze` with test image returns valid overlay response
-- [ ] Against mock server: `GET /health` returns model status
-- [ ] 5-second timeout fires correctly — scan animation stops, error message shown
-- [ ] HTTP errors (422, 429, 408, 500) are handled with user-friendly messages
-- [ ] Unit test: `useSnapshotAnalysis` hook state machine transitions: idle → loading → success/error
+- [x] Against mock server: `POST /analyze` with test image returns valid overlay response
+- [x] Against mock server: `GET /health` returns model status
+- [x] 5-second timeout fires correctly — scan animation stops, error message shown
+- [x] HTTP errors (422, 429, 408, 500) are handled with user-friendly messages
+- [x] Unit test: `useSnapshotAnalysis` hook state machine transitions: idle → loading → success/error
