@@ -14,6 +14,7 @@
 - `server/core/inference/segmentation/__init__.py`
 - `server/core/inference/segmentation/sam2.py`
 - `server/core/inference/segmentation/sam_hq.py`
+- `tests/unit/inference/test_segmentation_backends.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 

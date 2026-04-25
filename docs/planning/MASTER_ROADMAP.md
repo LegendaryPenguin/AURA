@@ -15,12 +15,12 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 ## Workstreams
 
 
-| ID  | Name                         | Owns                                                                                | Purpose                                               |
-| --- | ---------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| WS1 | Foundation & Contracts       | `shared/`, `config/`, `scripts/`, `server/utils/`, `tests/fixtures/`                | Schemas, interfaces, configs, mocks, utilities        |
-| WS2 | Client Application           | `client/` (entire), `tests/unit/client/`                                            | React PWA — camera, audio, overlays, networking       |
-| WS3 | Server API & Pipeline        | `server/main.py`, `server/api/`, `server/core/pipeline/`, `server/core/validation/` | FastAPI, routes, middleware, pipeline orchestration   |
-| WS4 | Inference Engines & Tracking | `server/core/inference/`, `server/core/tracking/`, `server/agents/`                 | ML model integrations, SAM2 tracking, Fetch.ai agents |
+| ID  | Name                         | Owns                                                                                                                 | Purpose                                               |
+| --- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| WS1 | Foundation & Contracts       | `shared/`, `config/`, `scripts/`, `server/utils/`, `tests/fixtures/`                                                 | Schemas, interfaces, configs, mocks, utilities        |
+| WS2 | Client Application           | `client/` (entire), `tests/unit/client/`                                                                             | React PWA — camera, audio, overlays, networking       |
+| WS3 | Server API & Pipeline        | `server/main.py`, `server/api/`, `server/core/pipeline/`, `server/core/validation/`                                  | FastAPI, routes, middleware, pipeline orchestration   |
+| WS4 | Inference Engines & Tracking | `server/core/inference/`, `server/core/tracking/`, `server/agents/`, `tests/unit/inference/`, `tests/unit/tracking/` | ML model integrations, SAM2 tracking, Fetch.ai agents |
 
 
 ---
@@ -107,17 +107,17 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 | WS2-G | Client     | WebSocket networking          | 3     | Phase 4     | Todo        |
 | WS2-H | Client     | App shell & integration       | 6     | Integration | Done        |
 | WS3-A | Server API | FastAPI scaffold & middleware | 4     | Phase 1     | Done        |
-| WS3-B | Server API | REST routes                   | 4     | Phase 1     | In-Progress |
+| WS3-B | Server API | REST routes                   | 4     | Phase 1     | Done        |
 | WS3-C | Server API | WebSocket route               | 2     | Phase 4     | Todo        |
 | WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Todo        |
 | WS3-E | Server API | Streaming pipeline            | 3     | Phase 4     | Todo        |
 | WS3-F | Server API | Validation                    | 3     | Phase 1     | Todo        |
-| WS4-A | Inference  | VLM backend                   | 3     | Phase 1     | In-Progress |
-| WS4-B | Inference  | Audio backend                 | 2     | Phase 2     | Todo        |
-| WS4-C | Inference  | Segmentation backend          | 3     | Phase 2     | Todo        |
-| WS4-D | Inference  | Depth backend                 | 3     | Phase 5     | Todo        |
-| WS4-E | Inference  | Tracking system               | 3     | Phase 4     | Todo        |
-| WS4-F | Inference  | Generation & agents           | 5     | Stretch     | Todo        |
+| WS4-A | Inference  | VLM backend                   | 4     | Phase 1     | In-Progress |
+| WS4-B | Inference  | Audio backend                 | 3     | Phase 2     | Todo        |
+| WS4-C | Inference  | Segmentation backend          | 4     | Phase 2     | Todo        |
+| WS4-D | Inference  | Depth backend                 | 4     | Phase 5     | Todo        |
+| WS4-E | Inference  | Tracking system               | 4     | Phase 4     | Todo        |
+| WS4-F | Inference  | Generation & agents           | 6     | Stretch     | Todo        |
 
 
 ---

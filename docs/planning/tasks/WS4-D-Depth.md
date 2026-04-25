@@ -14,6 +14,7 @@
 - `server/core/inference/depth/__init__.py`
 - `server/core/inference/depth/depth_anything.py`
 - `server/core/inference/depth/midas.py`
+- `tests/unit/inference/test_depth_backends.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 
