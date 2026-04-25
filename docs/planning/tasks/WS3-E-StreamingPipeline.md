@@ -14,6 +14,7 @@
 - `server/core/pipeline/streaming_pipeline.py`
 - `server/core/pipeline/stages/segment.py`
 - `server/core/pipeline/stages/depth.py`
+- `tests/unit/pipeline/test_streaming_pipeline.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 

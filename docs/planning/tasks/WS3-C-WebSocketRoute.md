@@ -13,6 +13,7 @@
 
 - `server/api/routes/stream.py`
 - `server/api/routes/agents.py`
+- `tests/unit/api/test_websocket_route.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 
