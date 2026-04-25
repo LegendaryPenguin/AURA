@@ -2,8 +2,8 @@
 
 | Field       | Value                         |
 | ----------- | ----------------------------- |
-| **Status**  | `Todo`                        |
-| **Owner**   | _Unassigned_                  |
+| **Status**  | `Done`                        |
+| **Owner**   | `Farrell`                     |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
 
@@ -30,8 +30,8 @@
 
 ## Verification
 
-- [ ] `POST /analyze` with valid fixture image returns 200 with schema-valid response (using mock pipeline)
-- [ ] `POST /analyze` with invalid image returns 422 with structured error
-- [ ] `GET /health` returns per-model status JSON
-- [ ] Concurrent `POST /analyze` requests: first gets 200, second gets 429
-- [ ] Unit test: rate limiter correctly blocks concurrent requests and releases after completion
+- [x] `POST /analyze` with valid fixture image returns 200 with schema-valid response (using mock pipeline)
+- [x] `POST /analyze` with invalid image returns 422 with structured error
+- [x] `GET /health` returns per-model status JSON
+- [x] Concurrent `POST /analyze` requests: first gets 200, second gets 429
+- [x] Unit test: rate limiter correctly blocks concurrent requests and releases after completion
