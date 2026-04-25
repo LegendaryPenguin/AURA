@@ -1,6 +1,6 @@
 # AURA — Spatial AR Intelligence Platform
 
-Real-time spatial reasoning that bridges physical environments and AI. Point a phone's camera at any object, ask a voice question, and Aura projects AR diagnostic overlays — bounding boxes, segmentation masks, and action prompts — directly onto that object's position in the live camera feed.
+Real-time spatial reasoning that seamlessly bridges physical environments and AI. Point a phone's camera at any object, ask a voice question, and Aura projects AR diagnostic overlays — bounding boxes, segmentation masks, and action prompts — directly onto that object's position in the live camera feed.
 
 **All AI inference runs locally on the ASUS edge supercomputer. No cloud. No data leaves the room.**
 
