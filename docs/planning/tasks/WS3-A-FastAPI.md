@@ -1,11 +1,13 @@
 # WS3-A: FastAPI Scaffold & Middleware
 
-| Field       | Value                         |
-| ----------- | ----------------------------- |
-| **Status**  | `Todo`                        |
-| **Owner**   | _Unassigned_                  |
-| **Phase**   | Phase 1                       |
-| **Stream**  | WS3 — Server API & Pipeline   |
+
+| Field      | Value                       |
+| ---------- | --------------------------- |
+| **Status** | `Done`                      |
+| **Owner**  | Farrell                     |
+| **Phase**  | Phase 1                     |
+| **Stream** | WS3 — Server API & Pipeline |
+
 
 ---
 
@@ -31,8 +33,8 @@
 
 ## Verification
 
-- [ ] Server starts and responds to `GET /` with 404 (no root route)
-- [ ] CORS headers present on responses from configured origins
-- [ ] Unhandled exception returns structured JSON error, not stack trace
-- [ ] Server starts with zero model dependencies (all backends optional at startup)
-- [ ] Unit test: error handler middleware catches and formats exceptions correctly
+- Server starts and responds to `GET /` with 404 (no root route)
+- CORS headers present on responses from configured origins
+- Unhandled exception returns structured JSON error, not stack trace
+- Server starts with zero model dependencies (all backends optional at startup)
+- Unit test: error handler middleware catches and formats exceptions correctly
