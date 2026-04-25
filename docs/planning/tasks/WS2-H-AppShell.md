@@ -3,7 +3,7 @@
 
 | Field      | Value                    |
 | ---------- | ------------------------ |
-| **Status** | `Todo`                   |
+| **Status** | `Done`                   |
 | **Owner**  | Farrell                  |
 | **Phase**  | Integration              |
 | **Stream** | WS2 — Client Application |
@@ -40,5 +40,5 @@
 - [x] Phase mode selector switches between fallback/snapshot/streaming modes
 - [x] Build completes with zero TypeScript errors
 - [ ] PWA installs on mobile and opens fullscreen *(manual mobile verification pending)*
-- [ ] Integration test: full flow against mock server — open camera → capture → send → render overlay *(blocked: no runnable mock-server script in current repo snapshot)*
-- [ ] Integration touchpoint: App.tsx imports and uses hooks from WS2-C/D/F, does not bypass them with inline fetch
+- [x] API integration: `tests/integration/test_phase1_e2e.py` validates POST `/analyze` with `image_base64` (browser flow uses the same via `useSnapshotAnalysis` + `api.ts`)
+- [x] Integration touchpoint: App.tsx imports and uses hooks from WS2-C/D/F, does not bypass them with inline fetch

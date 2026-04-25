@@ -2,7 +2,7 @@
 
 | Field       | Value                         |
 | ----------- | ----------------------------- |
-| **Status**  | `Todo`                        |
+| **Status**  | `Done`                        |
 | **Owner**   | `Farrell`                     |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
@@ -36,4 +36,4 @@
 - [x] `GET /health` returns per-model status JSON
 - [x] Concurrent `POST /analyze` requests: first gets 200, second gets 429
 - [x] Unit test: rate limiter correctly blocks concurrent requests and releases after completion
-- [ ] Integration touchpoint: confirm `_extract_request_payload` output keys match `shared/schemas/analysis_request.json` field names
+- [x] Integration touchpoint: confirm `_extract_request_payload` output keys match `shared/schemas/analysis_request.json` field names

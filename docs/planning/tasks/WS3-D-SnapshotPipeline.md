@@ -2,7 +2,7 @@
 
 | Field       | Value                         |
 | ----------- | ----------------------------- |
-| **Status**  | `Todo`                        |
+| **Status**  | `Done`                        |
 | **Owner**   | `Farrell`                     |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
