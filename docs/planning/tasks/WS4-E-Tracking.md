@@ -14,6 +14,7 @@
 - `server/core/tracking/__init__.py`
 - `server/core/tracking/tracker.py`
 - `server/core/tracking/track_manager.py`
+- `tests/unit/tracking/test_tracker_system.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 

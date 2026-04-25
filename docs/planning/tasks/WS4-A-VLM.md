@@ -2,8 +2,8 @@
 
 | Field       | Value                            |
 | ----------- | -------------------------------- |
-| **Status**  | `Todo`                           |
-| **Owner**   | _Unassigned_                     |
+| **Status**  | `In-Progress`                    |
+| **Owner**   | `Farrell`                        |
 | **Phase**   | Phase 1                          |
 | **Stream**  | WS4 — Inference & Tracking       |
 
@@ -14,6 +14,7 @@
 - `server/core/inference/vlm/__init__.py`
 - `server/core/inference/vlm/qwen_vl.py`
 - `server/core/inference/vlm/llava.py`
+- `tests/unit/inference/test_vlm_backends.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 

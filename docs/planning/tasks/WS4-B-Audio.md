@@ -13,6 +13,7 @@
 
 - `server/core/inference/audio/__init__.py`
 - `server/core/inference/audio/whisper.py`
+- `tests/unit/inference/test_audio_backend.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 
