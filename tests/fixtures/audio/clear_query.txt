@@ -1,0 +1,4 @@
+Fixture type: clear query audio (transcription target)
+Expected transcript: "What is this object?"
+Duration seconds: 2.8
+Format note: Placeholder transcript fixture for unit and integration mocks.

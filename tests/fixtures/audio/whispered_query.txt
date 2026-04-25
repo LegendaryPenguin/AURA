@@ -1,0 +1,4 @@
+Fixture type: whispered query audio (low amplitude)
+Expected transcript: "Can you identify this part?"
+Duration seconds: 3.1
+Format note: Placeholder transcript fixture for unit and integration mocks.

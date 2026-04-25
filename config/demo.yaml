@@ -1,0 +1,38 @@
+# Demo and fallback behavior configuration.
+# Expected path contents:
+# - fallback.video_path: local mp4 used for guaranteed fallback demo
+# - fallback.payload_path: optional JSON payload used by fallback injector
+
+demo:
+  # Demo mode ("normal", "fallback", "mock-only").
+  mode: "normal"
+  # UI phase selector default on app startup (0-5).
+  default_phase: 1
+  # If true, startup checks verify required demo assets exist.
+  verify_assets_on_start: true
+
+fallback:
+  # Enables Shift+F or explicit fallback pathway in client.
+  enabled: true
+  # Path to prerecorded fallback demo video.
+  video_path: "./assets/fallback/demo.mp4"
+  # Path to hardcoded overlay payload fixture (JSON).
+  payload_path: "./tests/fixtures/overlay/fallback_overlay.json"
+  # Label used in UI to indicate fallback mode.
+  banner_text: "Fallback mode active"
+
+mock:
+  # Enables mock server behavior in local development.
+  enabled: true
+  # Base URL for mock API endpoint used by client/service layer.
+  server_base_url: "https://localhost:8443"
+  # Simulated latency range for mock responses.
+  latency_ms:
+    min: 80
+    max: 250
+
+telemetry:
+  # If true, write demo/session diagnostics to local logs.
+  enabled: true
+  # Output directory for local telemetry/debug logs.
+  output_dir: "./logs/demo"

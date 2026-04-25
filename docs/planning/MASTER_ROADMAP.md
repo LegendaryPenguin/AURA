@@ -94,9 +94,9 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 | ----- | ---------- | ----------------------------- | ----- | ----------- | ------ |
 | WS1-A | Foundation | Schemas & TypeScript types    | 5     | Sprint 0    | Done   |
 | WS1-B | Foundation | Abstract interfaces           | 3     | Sprint 0    | Done   |
-| WS1-C | Foundation | Config & environment          | 6     | Sprint 0    | Todo   |
+| WS1-C | Foundation | Config & environment          | 6     | Sprint 0    | Done   |
 | WS1-D | Foundation | Scripts & mock server         | 10    | Sprint 0    | Todo   |
-| WS1-E | Foundation | Utilities & test fixtures     | 8+    | Sprint 0    | Todo   |
+| WS1-E | Foundation | Utilities & test fixtures     | 8+    | Sprint 0    | Done   |
 | WS2-A | Client     | Camera subsystem              | 4     | Phase 2     | Todo   |
 | WS2-B | Client     | Audio subsystem               | 1     | Phase 2     | Todo   |
 | WS2-C | Client     | Frame capture & coords        | 3     | Phase 1     | Todo   |

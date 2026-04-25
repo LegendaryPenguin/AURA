@@ -2,8 +2,8 @@
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
-| **Status**  | `Todo`                     |
-| **Owner**   | _Unassigned_               |
+| **Status**  | `Done`                     |
+| **Owner**   | Farrell                    |
 | **Sprint**  | Sprint 0 (Foundation)      |
 | **Stream**  | WS1 — Foundation & Contracts |
 
@@ -38,8 +38,8 @@
 
 ## Verification
 
-- [ ] `image_utils.py`: round-trip encode→decode produces identical bytes, resize preserves aspect ratio
-- [ ] `frame_buffer.py`: overflow drops oldest frame, never blocks, buffer size stays bounded
-- [ ] `config_loader.py`: loads valid YAML, rejects missing keys with clear error message
-- [ ] `logger.py`: outputs valid JSON to stdout, includes all required fields
-- [ ] All mock implementations satisfy their interface contracts (contract tests pass)
+- [x] `image_utils.py`: round-trip encode→decode produces identical bytes, resize preserves aspect ratio
+- [x] `frame_buffer.py`: overflow drops oldest frame, never blocks, buffer size stays bounded
+- [x] `config_loader.py`: loads valid YAML, rejects missing keys with clear error message
+- [x] `logger.py`: outputs valid JSON to stdout, includes all required fields
+- [x] All mock implementations satisfy their interface contracts (contract tests pass)

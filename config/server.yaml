@@ -1,0 +1,58 @@
+# Server and API runtime configuration.
+# Expected path contents:
+# - ssl.cert_file / ssl.key_file: mkcert-generated local TLS cert and key
+
+server:
+  # Bind host for FastAPI service.
+  host: "0.0.0.0"
+  # HTTPS port for browser/mobile clients.
+  port: 8443
+  # If true, run API over TLS for camera permissions on mobile.
+  use_https: true
+  # Uvicorn worker count for local development.
+  workers: 1
+  # Log level ("debug", "info", "warning", "error").
+  log_level: "info"
+  # If true, expose debug-friendly error details in development.
+  debug: false
+
+ssl:
+  # Path to local certificate file (PEM/CRT).
+  cert_file: "./certs/localhost.pem"
+  # Path to local private key file.
+  key_file: "./certs/localhost-key.pem"
+
+cors:
+  # Browser origins allowed to call the API.
+  allowed_origins:
+    - "https://localhost:5173"
+    - "https://127.0.0.1:5173"
+  # Allowed HTTP methods for CORS preflight.
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "OPTIONS"
+  # Allowed request headers for CORS preflight.
+  allowed_headers:
+    - "Content-Type"
+    - "Authorization"
+  # Allow credentialed cross-site requests.
+  allow_credentials: false
+
+rate_limit:
+  # If true, reject concurrent /analyze requests with 429.
+  enable_analyze_lock: true
+  # Maximum simultaneously active analyze requests.
+  max_concurrent_analyze: 1
+
+health:
+  # Backends required for status "healthy" in current phases.
+  required_backends:
+    - "vlm"
+  # Optional backends shown in health payload but not required.
+  optional_backends:
+    - "audio"
+    - "segmentation"
+    - "depth"
+    - "generation"
+    - "agents"
