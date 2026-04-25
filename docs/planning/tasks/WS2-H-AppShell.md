@@ -1,11 +1,13 @@
 # WS2-H: App Shell & Integration
 
-| Field       | Value                  |
-| ----------- | ---------------------- |
-| **Status**  | `Todo`                 |
-| **Owner**   | _Unassigned_           |
-| **Phase**   | Integration            |
-| **Stream**  | WS2 — Client Application |
+
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| **Status** | `Done`                   |
+| **Owner**  | Farrell                  |
+| **Phase**  | Integration              |
+| **Stream** | WS2 — Client Application |
+
 
 ---
 
@@ -33,8 +35,8 @@
 
 ## Verification
 
-- [ ] App renders camera view with overlay canvas on top
-- [ ] Phase mode selector switches between fallback/snapshot/streaming modes
-- [ ] Build completes with zero TypeScript errors
-- [ ] PWA installs on mobile and opens fullscreen
-- [ ] Integration test: full flow against mock server — open camera → capture → send → render overlay
+- [x] App renders camera view with overlay canvas on top
+- [x] Phase mode selector switches between fallback/snapshot/streaming modes
+- [x] Build completes with zero TypeScript errors
+- [ ] PWA installs on mobile and opens fullscreen *(manual mobile verification pending)*
+- [ ] Integration test: full flow against mock server — open camera → capture → send → render overlay *(blocked: no runnable mock-server script in current repo snapshot)*
