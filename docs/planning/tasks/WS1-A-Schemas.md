@@ -1,11 +1,13 @@
 # WS1-A: Schemas & TypeScript Types
 
-| Field       | Value                      |
-| ----------- | -------------------------- |
-| **Status**  | `Todo`                     |
-| **Owner**   | _Unassigned_               |
-| **Sprint**  | Sprint 0 (Foundation)      |
-| **Stream**  | WS1 — Foundation & Contracts |
+
+| Field      | Value                        |
+| ---------- | ---------------------------- |
+| **Status** | `Done`                       |
+| **Owner**  | `Farrell`                    |
+| **Sprint** | Sprint 0 (Foundation)        |
+| **Stream** | WS1 — Foundation & Contracts |
+
 
 ---
 
@@ -32,7 +34,7 @@
 
 ## Verification
 
-- [ ] Every schema passes `jsonschema` self-validation
-- [ ] TypeScript types compile with zero errors
-- [ ] 5 golden response fixtures validate against the schema
-- [ ] 3 intentionally malformed fixtures are correctly rejected
+- Every schema passes `jsonschema` self-validation
+- TypeScript types compile with zero errors
+- 5 golden response fixtures validate against the schema
+- 3 intentionally malformed fixtures are correctly rejected

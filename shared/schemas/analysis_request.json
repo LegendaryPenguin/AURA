@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aura.local/schemas/analysis_request.json",
+  "title": "AnalysisRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "session_id",
+    "image_base64",
+    "query",
+    "capture_ts_ms"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "image_base64": {
+      "type": "string",
+      "minLength": 1
+    },
+    "audio_base64": {
+      "type": "string",
+      "minLength": 1
+    },
+    "audio_format": {
+      "type": "string",
+      "enum": [
+        "wav",
+        "webm",
+        "mp3",
+        "m4a"
+      ]
+    },
+    "query": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capture_ts_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "frame_size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "app_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "device_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
