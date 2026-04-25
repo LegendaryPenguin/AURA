@@ -90,33 +90,35 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 
 ## Agent Tasks — Quick Reference
 
-| Task  | Workstream | Summary                       | Files | Phase       | Status |
-| ----- | ---------- | ----------------------------- | ----- | ----------- | ------ |
-| WS1-A | Foundation | Schemas & TypeScript types    | 5     | Sprint 0    | Done   |
-| WS1-B | Foundation | Abstract interfaces           | 3     | Sprint 0    | Done   |
-| WS1-C | Foundation | Config & environment          | 6     | Sprint 0    | Done   |
-| WS1-D | Foundation | Scripts & mock server         | 10    | Sprint 0    | Todo   |
-| WS1-E | Foundation | Utilities & test fixtures     | 8+    | Sprint 0    | Done   |
-| WS2-A | Client     | Camera subsystem              | 4     | Phase 2     | Todo   |
-| WS2-B | Client     | Audio subsystem               | 1     | Phase 2     | Todo   |
-| WS2-C | Client     | Frame capture & coords        | 3     | Phase 1     | Todo   |
-| WS2-D | Client     | Overlay rendering             | 6     | Phase 1     | Todo   |
+
+| Task  | Workstream | Summary                       | Files | Phase       | Status      |
+| ----- | ---------- | ----------------------------- | ----- | ----------- | ----------- |
+| WS1-A | Foundation | Schemas & TypeScript types    | 5     | Sprint 0    | Done        |
+| WS1-B | Foundation | Abstract interfaces           | 3     | Sprint 0    | Done        |
+| WS1-C | Foundation | Config & environment          | 6     | Sprint 0    | Done        |
+| WS1-D | Foundation | Scripts & mock server         | 10    | Sprint 0    | Done        |
+| WS1-E | Foundation | Utilities & test fixtures     | 8+    | Sprint 0    | Done        |
+| WS2-A | Client     | Camera subsystem              | 4     | Phase 2     | Todo        |
+| WS2-B | Client     | Audio subsystem               | 1     | Phase 2     | Todo        |
+| WS2-C | Client     | Frame capture & coords        | 3     | Phase 1     | Todo        |
+| WS2-D | Client     | Overlay rendering             | 6     | Phase 1     | Todo        |
 | WS2-E | Client     | UI chrome & fallback          | 8     | Phase 0     | Done        |
-| WS2-F | Client     | REST networking               | 3     | Phase 1     | Todo   |
-| WS2-G | Client     | WebSocket networking          | 3     | Phase 4     | Todo   |
-| WS2-H | Client     | App shell & integration       | 6     | Integration | Done   |
-| WS3-A | Server API | FastAPI scaffold & middleware | 4     | Phase 1     | Todo   |
-| WS3-B | Server API | REST routes                   | 4     | Phase 1     | Todo   |
-| WS3-C | Server API | WebSocket route               | 2     | Phase 4     | Todo   |
-| WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Todo   |
-| WS3-E | Server API | Streaming pipeline            | 3     | Phase 4     | Todo   |
-| WS3-F | Server API | Validation                    | 3     | Phase 1     | Todo   |
-| WS4-A | Inference  | VLM backend                   | 3     | Phase 1     | Todo   |
-| WS4-B | Inference  | Audio backend                 | 2     | Phase 2     | Todo   |
-| WS4-C | Inference  | Segmentation backend          | 3     | Phase 2     | Todo   |
-| WS4-D | Inference  | Depth backend                 | 3     | Phase 5     | Todo   |
-| WS4-E | Inference  | Tracking system               | 3     | Phase 4     | Todo   |
-| WS4-F | Inference  | Generation & agents           | 5     | Stretch     | Todo   |
+| WS2-F | Client     | REST networking               | 3     | Phase 1     | Todo        |
+| WS2-G | Client     | WebSocket networking          | 3     | Phase 4     | Todo        |
+| WS2-H | Client     | App shell & integration       | 6     | Integration | Done        |
+| WS3-A | Server API | FastAPI scaffold & middleware | 4     | Phase 1     | Todo        |
+| WS3-B | Server API | REST routes                   | 4     | Phase 1     | Todo        |
+| WS3-C | Server API | WebSocket route               | 2     | Phase 4     | Todo        |
+| WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Todo        |
+| WS3-E | Server API | Streaming pipeline            | 3     | Phase 4     | Todo        |
+| WS3-F | Server API | Validation                    | 3     | Phase 1     | Todo        |
+| WS4-A | Inference  | VLM backend                   | 3     | Phase 1     | Todo        |
+| WS4-B | Inference  | Audio backend                 | 2     | Phase 2     | Todo        |
+| WS4-C | Inference  | Segmentation backend          | 3     | Phase 2     | Todo        |
+| WS4-D | Inference  | Depth backend                 | 3     | Phase 5     | Todo        |
+| WS4-E | Inference  | Tracking system               | 3     | Phase 4     | Todo        |
+| WS4-F | Inference  | Generation & agents           | 5     | Stretch     | Todo        |
+
 
 ---
 

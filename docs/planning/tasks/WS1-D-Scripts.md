@@ -2,8 +2,8 @@
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
-| **Status**  | `Todo`                     |
-| **Owner**   | _Unassigned_               |
+| **Status**  | `Done`                     |
+| **Owner**   | `Farrell`                  |
 | **Sprint**  | Sprint 0 (Foundation)      |
 | **Stream**  | WS1 — Foundation & Contracts |
 
@@ -43,7 +43,7 @@
 
 ## Verification
 
-- [ ] Mock server starts, `/health` returns 200
-- [ ] Mock `/analyze` returns a schema-valid overlay response for any valid request
-- [ ] Mock `/stream` accepts a WebSocket connection and returns overlay frames
-- [ ] All scripts are executable and have correct shebangs
+- [x] Mock server starts, `/health` returns 200
+- [x] Mock `/analyze` returns a schema-valid overlay response for any valid request
+- [x] Mock `/stream` accepts a WebSocket connection and returns overlay frames
+- [x] All scripts are executable and have correct shebangs
