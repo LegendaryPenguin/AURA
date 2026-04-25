@@ -2,8 +2,8 @@
 
 | Field       | Value                  |
 | ----------- | ---------------------- |
-| **Status**  | `Todo`                 |
-| **Owner**   | _Unassigned_           |
+| **Status**  | `Done`                 |
+| **Owner**   | `Farrell`              |
 | **Phase**   | Phase 1                |
 | **Stream**  | WS2 — Client Application |
 
@@ -29,8 +29,11 @@
 
 ## Verification
 
-- [ ] Captured frame is a valid JPEG (decodable, correct resolution)
-- [ ] Overlay mapper: normalized `(0.5, 0.5, 0.2, 0.3)` maps to center of video element regardless of window size
-- [ ] Coordinate mapping accounts for `object-fit: cover` cropping
-- [ ] Orientation change triggers coordinate recalculation
+- [x] Captured frame is a valid JPEG (decodable, correct resolution)
+- [x] Overlay mapper: normalized `(0.5, 0.5, 0.2, 0.3)` maps to center of video element regardless of window size
+- [x] Coordinate mapping accounts for `object-fit: cover` cropping
+- [x] Orientation change triggers coordinate recalculation
 - [ ] Unit test: given mock video bounds and normalized bbox, mapper produces correct px values
+
+Remaining:
+- Unit test item remains open due strict WS2-C file ownership limiting edits to three implementation files only.
