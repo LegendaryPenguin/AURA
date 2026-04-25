@@ -1,11 +1,13 @@
 # WS4-A: VLM Backend
 
-| Field       | Value                            |
-| ----------- | -------------------------------- |
-| **Status**  | `In-Progress`                    |
-| **Owner**   | `Farrell`                        |
-| **Phase**   | Phase 1                          |
-| **Stream**  | WS4 — Inference & Tracking       |
+
+| Field      | Value                      |
+| ---------- | -------------------------- |
+| **Status** | `Todo`                     |
+| **Owner**  | `Farrell`                  |
+| **Phase**  | Phase 1                    |
+| **Stream** | WS4 — Inference & Tracking |
+
 
 ---
 
@@ -30,10 +32,10 @@
 
 ## Verification
 
-- [ ] `load()` → `warmup()` → `is_ready()` returns True (with vLLM running)
-- [ ] `analyze()` with test fixture image returns valid JSON matching schema
-- [ ] Bounding box coordinates are within [0,1] range
-- [ ] 80%+ of bounding boxes land on correct object region across 20 test images
-- [ ] Response time under 2 seconds for 7B model
-- [ ] `llava.py` passes same interface tests (lower accuracy acceptable)
-- [ ] Unit test: VLM output passes schema validation for all fixture images
+- `load()` → `warmup()` → `is_ready()` returns True (with vLLM running)
+- `analyze()` with test fixture image returns valid JSON matching schema
+- Bounding box coordinates are within [0,1] range
+- 80%+ of bounding boxes land on correct object region across 20 test images
+- Response time under 2 seconds for 7B model
+- `llava.py` passes same interface tests (lower accuracy acceptable)
+- Unit test: VLM output passes schema validation for all fixture images

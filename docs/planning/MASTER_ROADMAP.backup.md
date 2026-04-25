@@ -14,16 +14,19 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 
 ## Workstreams
 
-| ID  | Name                         | Owns                                                                                | Purpose                                               |
-| --- | ---------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| WS1 | Foundation & Contracts       | `shared/`, `config/`, `scripts/`, `server/utils/`, `tests/fixtures/`               | Schemas, interfaces, configs, mocks, utilities       |
-| WS2 | Client Application           | `client/` (entire), `tests/unit/client/`                                            | React PWA — camera, audio, overlays, networking      |
-| WS3 | Server API & Pipeline        | `server/main.py`, `server/api/`, `server/core/pipeline/`, `server/core/validation/`| FastAPI, routes, middleware, pipeline orchestration  |
-| WS4 | Inference Engines & Tracking | `server/core/inference/`, `server/core/tracking/`, `server/agents/`, `tests/unit/inference/`, `tests/unit/tracking/` | ML model integrations, SAM2 tracking, Fetch.ai agents|
+
+| ID  | Name                         | Owns                                                                                                                 | Purpose                                               |
+| --- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| WS1 | Foundation & Contracts       | `shared/`, `config/`, `scripts/`, `server/utils/`, `tests/fixtures/`                                                 | Schemas, interfaces, configs, mocks, utilities        |
+| WS2 | Client Application           | `client/` (entire), `tests/unit/client/`                                                                             | React PWA — camera, audio, overlays, networking       |
+| WS3 | Server API & Pipeline        | `server/main.py`, `server/api/`, `server/core/pipeline/`, `server/core/validation/`                                  | FastAPI, routes, middleware, pipeline orchestration   |
+| WS4 | Inference Engines & Tracking | `server/core/inference/`, `server/core/tracking/`, `server/agents/`, `tests/unit/inference/`, `tests/unit/tracking/` | ML model integrations, SAM2 tracking, Fetch.ai agents |
+
 
 ---
 
 ## Agent Tasks — Quick Reference
+
 
 | Task  | Workstream | Summary                       | Files | Phase       | Status      |
 | ----- | ---------- | ----------------------------- | ----- | ----------- | ----------- |

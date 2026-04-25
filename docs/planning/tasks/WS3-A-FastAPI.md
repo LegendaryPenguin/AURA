@@ -3,7 +3,7 @@
 
 | Field      | Value                       |
 | ---------- | --------------------------- |
-| **Status** | `Done`                      |
+| **Status** | `Todo`                      |
 | **Owner**  | Farrell                     |
 | **Phase**  | Phase 1                     |
 | **Stream** | WS3 — Server API & Pipeline |
@@ -26,7 +26,7 @@
 
 ## Work
 
-- `main.py`: FastAPI app factory. Register CORS, error handler middleware. Lifespan hook for backend loading. Startup event logs loaded backends.
+- `main.py`: FastAPI app factory. Register CORS, error handler middleware. Mount `api_router` from `server.api.routes`. Lifespan hook loads VLM backend (via `importlib`, no concrete class import — composition root pattern), builds snapshot pipeline via `build_snapshot_pipeline()`, and attaches both to `app.state.snapshot_pipeline` and `app.state.backend_statuses`. Startup event logs loaded backends.
 - `cors.py`: configure allowed origins from `config/server.yaml`
 - `error_handler.py`: catch all unhandled exceptions, return structured JSON: `{ "error": str, "code": int, "stage": str }`
 
@@ -39,3 +39,5 @@
 - Unhandled exception returns structured JSON error, not stack trace
 - Server starts with zero model dependencies (all backends optional at startup)
 - Unit test: error handler middleware catches and formats exceptions correctly
+- Routes mounted: `GET /health` and `POST /analyze` are reachable
+- Integration touchpoint: `app.state.snapshot_pipeline` is set (or None with fallback) before first request

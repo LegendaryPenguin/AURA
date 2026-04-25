@@ -32,7 +32,7 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 - **Deliverable:** Pre-recorded demo video + `Shift+F` hardcoded overlay injection
 - **Proves:** Frontend rendering pipeline works independently of any server
 - **Workstreams:** WS2 only
-- **Status:** `Todo`
+- **Status:** `Done`
 
 ### Phase 1 — Static Image Analysis
 
@@ -41,6 +41,7 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 - **Pipeline:** `preprocess → analyze (VLM) → validate → postprocess`
 - **Workstreams:** WS2-F, WS3-B, WS3-D, WS4-A
 - **Status:** `Todo`
+- **Integration gate:** Phase cannot be marked complete until `tests/integration/test_phase1_e2e.py` passes — TestClient POSTs to `/analyze` with valid `image_base64` + `query`, verifies 200 response with schema-valid overlay fields.
 
 ### Phase 2 — Live Camera + Voice + Snapshot AR *(Primary Target)*
 
@@ -105,14 +106,14 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 | WS2-E | Client     | UI chrome & fallback          | 8     | Phase 0     | Done        |
 | WS2-F | Client     | REST networking               | 3     | Phase 1     | Done        |
 | WS2-G | Client     | WebSocket networking          | 3     | Phase 4     | Todo        |
-| WS2-H | Client     | App shell & integration       | 6     | Integration | Done        |
-| WS3-A | Server API | FastAPI scaffold & middleware | 4     | Phase 1     | Done        |
-| WS3-B | Server API | REST routes                   | 4     | Phase 1     | Done        |
+| WS2-H | Client     | App shell & integration (depends: WS2-C/D/F) | 6     | Integration | Todo        |
+| WS3-A | Server API | FastAPI scaffold & middleware | 4     | Phase 1     | Todo        |
+| WS3-B | Server API | REST routes                   | 4     | Phase 1     | Todo        |
 | WS3-C | Server API | WebSocket route               | 2     | Phase 4     | Todo        |
-| WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Done        |
+| WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Todo        |
 | WS3-E | Server API | Streaming pipeline            | 3     | Phase 4     | Todo        |
 | WS3-F | Server API | Validation                    | 3     | Phase 1     | Done        |
-| WS4-A | Inference  | VLM backend                   | 4     | Phase 1     | In-Progress |
+| WS4-A | Inference  | VLM backend                   | 4     | Phase 1     | Todo        |
 | WS4-B | Inference  | Audio backend                 | 3     | Phase 2     | Todo        |
 | WS4-C | Inference  | Segmentation backend          | 4     | Phase 2     | Todo        |
 | WS4-D | Inference  | Depth backend                 | 4     | Phase 5     | Todo        |
@@ -130,6 +131,8 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 4. WS2 → WS3 communication is HTTP/WebSocket only — no code imports
 5. WS4 has zero knowledge of routes or pipelines
 6. Contract tests run on every PR merge
+7. HTTP contract tests: every route handler must have a contract test that validates request/response payloads against `shared/schemas/*.json`
+8. PipelineContext field contract: route code must set `context.query` for text queries and `context.response` for binary payloads (image_base64, audio_base64) and inter-stage results — see docstring in `shared/interfaces/pipeline_stage.py`
 
 ---
 
