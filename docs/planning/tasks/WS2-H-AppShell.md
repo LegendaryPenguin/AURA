@@ -3,10 +3,11 @@
 
 | Field      | Value                    |
 | ---------- | ------------------------ |
-| **Status** | `Done`                   |
+| **Status** | `Todo`                   |
 | **Owner**  | Farrell                  |
 | **Phase**  | Integration              |
 | **Stream** | WS2 — Client Application |
+| **Depends** | WS2-C (useFrameCapture), WS2-D (useOverlay, OverlayCanvas), WS2-F (api.ts, useSnapshotAnalysis) |
 
 
 ---
@@ -26,7 +27,7 @@
 
 ## Work
 
-- `App.tsx`: top-level routing, phase mode selector (0–5), compose camera + overlays + UI chrome
+- `App.tsx`: top-level routing, phase mode selector (0–5), compose camera + overlays + UI chrome. Must import and use `useFrameCapture`, `useSnapshotAnalysis`, `useOverlay`, and `OverlayCanvas` for Phase 1+ — do not use inline fetch or inline canvas drawing for analysis flow.
 - `main.tsx`: React root mount
 - Vite config with HTTPS proxy for development, source maps
 - PWA manifest for mobile home screen installation
@@ -40,3 +41,4 @@
 - [x] Build completes with zero TypeScript errors
 - [ ] PWA installs on mobile and opens fullscreen *(manual mobile verification pending)*
 - [ ] Integration test: full flow against mock server — open camera → capture → send → render overlay *(blocked: no runnable mock-server script in current repo snapshot)*
+- [ ] Integration touchpoint: App.tsx imports and uses hooks from WS2-C/D/F, does not bypass them with inline fetch
