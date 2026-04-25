@@ -75,7 +75,7 @@ aura/
 | 4     | SAM2-Tracked AR             | WebSocket streaming, SAM2 tracks objects between VLM queries   |
 | 5     | Full Real-Time Streaming    | SAM2 + Depth on every frame, depth sorting, hallucination check|
 
-Each phase is independently demonstrable. A polished earlier phase beats a broken later phase.
+Each phase is independently demonstrable. A polished earlier phase always beats a broken later phase.
 
 ---
 
