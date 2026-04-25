@@ -3,6 +3,7 @@
 | Field       | Value                         |
 | ----------- | ----------------------------- |
 | **Status**  | `Done`                        |
+| **Maturity** | `Implemented`               |
 | **Owner**   | `Farrell`                     |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
@@ -28,7 +29,7 @@
 ## Work
 
 - `orchestrator.py`: read current phase from config, return correct pipeline instance (snapshot or streaming)
-- `snapshot_pipeline.py`: chain stages in order — preprocess → transcribe → analyze → segment → postprocess. Per-stage timeouts from `config/pipeline.yaml`. Return 408 if total exceeds timeout.
+- `snapshot_pipeline.py`: chain stages in order — preprocess → transcribe → analyze → postprocess. Per-stage timeouts from `config/pipeline.yaml`. Return 408 if total exceeds timeout.
 - `preprocess.py`: decode base64, validate JPEG header, resize to model input dims. Reject non-JPEG.
 - `transcribe.py`: call audio backend's `transcribe()`. Fall back to default query from config on failure.
 - `analyze.py`: call VLM backend's `analyze()` with preprocessed image and query.
@@ -47,3 +48,50 @@ Each stage implements the `PipelineStage` interface. Each stage receives and ret
 - [x] Per-stage timeout fires and returns 408 (test with a mock that sleeps)
 - [x] Postprocess validates output against schema and rejects malformed VLM output
 - [x] Unit test per stage: each stage independently transforms `PipelineContext` correctly
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS1-B, WS1-C, WS4-A
+- Downstream tasks: WS3-B, Phase 1/2 flows
+- Runtime dependencies (routes/pipelines/config): stage sequencing and timeout configuration.
+- Contract dependencies (schemas/interfaces): `PipelineStage`, `PipelineContext`, overlay response contract.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS3-D
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: stage contract breakage, timeout policy regressions, invalid postprocess output.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS3 owner
+- Re-promotion criteria: snapshot pipeline unit and integration checks pass.
+
+---
+
+## Residual Risks
+
+- Edge-case media payloads can stress preprocess/transcribe assumptions. Owner: WS3. Mitigation: fixture expansion.

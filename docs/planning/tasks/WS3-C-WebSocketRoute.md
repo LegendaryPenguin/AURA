@@ -3,6 +3,7 @@
 | Field       | Value                         |
 | ----------- | ----------------------------- |
 | **Status**  | `Todo`                        |
+| **Maturity** | `Planned`                   |
 | **Owner**   | _Unassigned_                  |
 | **Phase**   | Phase 4                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
@@ -33,3 +34,50 @@
 - [ ] Session timeout fires after 5 minutes of inactivity
 - [ ] `/agents/trigger` returns mock response when agent subsystem not loaded
 - [ ] Unit test: WebSocket route processes 100 frames without memory leak (measure process RSS)
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS3-E, WS4-E
+- Downstream tasks: WS2-G
+- Runtime dependencies (routes/pipelines/config): `/stream` route and session lifecycle with streaming pipeline.
+- Contract dependencies (schemas/interfaces): stream frame and overlay response schema contracts.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS3-C
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: websocket route instability, timeout leakage, or schema mismatch.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS3 owner
+- Re-promotion criteria: websocket verification checklist and unit tests pass.
+
+---
+
+## Residual Risks
+
+- Long-lived session behavior can produce latent resource issues. Owner: WS3. Mitigation: memory and timeout verification gates.

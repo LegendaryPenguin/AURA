@@ -3,6 +3,7 @@
 | Field       | Value                      |
 | ----------- | -------------------------- |
 | **Status**  | `Done`                     |
+| **Maturity** | `Implemented`            |
 | **Owner**   | Farrell                    |
 | **Sprint**  | Sprint 0 (Foundation)      |
 | **Stream**  | WS1 — Foundation & Contracts |
@@ -43,3 +44,50 @@
 - [x] `config_loader.py`: loads valid YAML, rejects missing keys with clear error message
 - [x] `logger.py`: outputs valid JSON to stdout, includes all required fields
 - [x] All mock implementations satisfy their interface contracts (contract tests pass)
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS1-A, WS1-B, WS1-C
+- Downstream tasks: WS3-D, WS3-F, WS4-A
+- Runtime dependencies (routes/pipelines/config): utility behavior must match expectations from pipeline and route layers.
+- Contract dependencies (schemas/interfaces): fixture/mocks must remain interface- and schema-compliant.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS1-E
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: utility or fixtures break contract tests or downstream consumers.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS1 owner
+- Re-promotion criteria: utility/unit/contract gates pass.
+
+---
+
+## Residual Risks
+
+- Fixture quality may become stale relative to evolving behavior. Owner: WS1. Mitigation: periodic fixture refresh and contract validation.

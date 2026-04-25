@@ -3,6 +3,7 @@
 | Field       | Value                  |
 | ----------- | ---------------------- |
 | **Status**  | `Done`                 |
+| **Maturity** | `Implemented`        |
 | **Owner**   | `Farrell`              |
 | **Phase**   | Phase 1                |
 | **Stream**  | WS2 — Client Application |
@@ -47,3 +48,50 @@
 Completed:
 - Added `tests/unit/client/OverlayRendering.test.tsx` to verify normalized-to-pixel mapping, visual style variants, multi-overlay rendering, and RLE mask drawing.
 - Added `tests/unit/client/useOverlay.test.tsx` to verify lifecycle transitions (entering -> visible -> exiting -> removed), explicit removal, and clear behavior.
+
+---
+
+## Dependencies
+
+- Upstream tasks: WS2-C, WS1-A
+- Downstream tasks: WS2-H, WS2-G
+- Runtime dependencies (routes/pipelines/config): overlay rendering path consumes response payload shape and timing.
+- Contract dependencies (schemas/interfaces): `shared/schemas/overlay_response.json` and generated types.
+
+---
+
+## Promotion Evidence
+
+Use this block before promotion beyond `Implemented`:
+
+```
+PromotionRecord:
+  TaskID: WS2-D
+  MaturityBefore: <level>
+  MaturityAfter: <level>
+  ChangeSummary: <what changed>
+  GatesRun:
+    - <test/check>
+  EvidenceLinks:
+    - <path/log/artifact>
+  DependenciesClosed: <yes/no + note>
+  ResidualRisk: <risk + owner>
+  RollbackRequired: <Yes/No>
+  Signoff:
+    - <workstream/owner>
+```
+
+---
+
+## Rollback
+
+- Trigger conditions: incorrect overlay rendering/mapping or regression in overlay lifecycle.
+- Rollback target maturity: `Implemented`
+- Blocker owner: WS2 owner
+- Re-promotion criteria: overlay unit tests and rendering checks pass.
+
+---
+
+## Residual Risks
+
+- Visual regressions may slip without representative fixtures. Owner: WS2. Mitigation: fixture-based rendering tests.
