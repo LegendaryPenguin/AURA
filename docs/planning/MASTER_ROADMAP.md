@@ -102,7 +102,7 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 | WS2-B | Client     | Audio subsystem               | 1     | Phase 2     | Todo   |
 | WS2-C | Client     | Frame capture & coords        | 3     | Phase 1     | Todo   |
 | WS2-D | Client     | Overlay rendering             | 6     | Phase 1     | Todo   |
-| WS2-E | Client     | UI chrome & fallback          | 8     | Phase 0     | Todo   |
+| WS2-E | Client     | UI chrome & fallback          | 8     | Phase 0     | Done        |
 | WS2-F | Client     | REST networking               | 3     | Phase 1     | Todo   |
 | WS2-G | Client     | WebSocket networking          | 3     | Phase 4     | Todo   |
 | WS2-H | Client     | App shell & integration       | 6     | Integration | Done   |

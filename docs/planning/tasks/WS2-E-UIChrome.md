@@ -1,11 +1,13 @@
 # WS2-E: UI Chrome & Fallback
 
-| Field       | Value                  |
-| ----------- | ---------------------- |
-| **Status**  | `Todo`                 |
-| **Owner**   | _Unassigned_           |
-| **Phase**   | Phase 0                |
-| **Stream**  | WS2 — Client Application |
+
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| **Status** | `Done`                   |
+| **Owner**  | Farrell                  |
+| **Phase**  | Phase 0                  |
+| **Stream** | WS2 — Client Application |
+
 
 ---
 
@@ -39,9 +41,9 @@
 
 ## Verification
 
-- [ ] Scan animation plays during loading and stops on response
-- [ ] `Shift+F` produces a visible overlay from the hardcoded fallback payload
-- [ ] Fallback video plays when triggered and routes through same rendering pipeline
-- [ ] ConfidenceIndicator shows correct color for confidence thresholds (>0.8=green, >0.5=yellow, else red)
-- [ ] StatusBar reflects server connection state (connected/disconnected/reconnecting)
-- [ ] Unit test: `useFallback` hook returns hardcoded payload matching schema
+- Scan animation plays during loading and stops on response
+- `Shift+F` produces a visible overlay from the hardcoded fallback payload
+- Fallback video plays when triggered and routes through same rendering pipeline
+- ConfidenceIndicator shows correct color for confidence thresholds (>0.8=green, >0.5=yellow, else red)
+- StatusBar reflects server connection state (connected/disconnected/reconnecting)
+- Unit test: `useFallback` hook returns hardcoded payload matching schema
