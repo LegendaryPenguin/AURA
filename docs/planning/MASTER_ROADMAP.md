@@ -90,11 +90,10 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 
 ## Agent Tasks — Quick Reference
 
-
 | Task  | Workstream | Summary                       | Files | Phase       | Status |
 | ----- | ---------- | ----------------------------- | ----- | ----------- | ------ |
 | WS1-A | Foundation | Schemas & TypeScript types    | 5     | Sprint 0    | Done   |
-| WS1-B | Foundation | Abstract interfaces           | 3     | Sprint 0    | Todo   |
+| WS1-B | Foundation | Abstract interfaces           | 3     | Sprint 0    | Done   |
 | WS1-C | Foundation | Config & environment          | 6     | Sprint 0    | Todo   |
 | WS1-D | Foundation | Scripts & mock server         | 10    | Sprint 0    | Todo   |
 | WS1-E | Foundation | Utilities & test fixtures     | 8+    | Sprint 0    | Todo   |
@@ -118,7 +117,6 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 | WS4-D | Inference  | Depth backend                 | 3     | Phase 5     | Todo   |
 | WS4-E | Inference  | Tracking system               | 3     | Phase 4     | Todo   |
 | WS4-F | Inference  | Generation & agents           | 5     | Stretch     | Todo   |
-
 
 ---
 
