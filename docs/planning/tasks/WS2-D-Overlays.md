@@ -17,6 +17,8 @@
 - `client/src/components/overlays/InfoBox.tsx`
 - `client/src/components/overlays/MaskOverlay.tsx`
 - `client/src/hooks/useOverlay.ts`
+- `tests/unit/client/OverlayRendering.test.tsx`
+- `tests/unit/client/useOverlay.test.tsx`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 
