@@ -35,9 +35,13 @@
 
 ## Verification
 
-- [ ] Given a mock overlay response, the correct component renders at the correct pixel position
-- [ ] Each overlay type renders with its correct visual style (blue/red/neutral glow)
-- [ ] Overlay auto-dismisses after 8 seconds
-- [ ] Multiple overlays render simultaneously without collision
-- [ ] MaskOverlay renders RLE-decoded mask data onto canvas (test with fixture mask)
-- [ ] Unit test: `useOverlay` hook manages add/remove/timeout lifecycle correctly
+- [x] Given a mock overlay response, the correct component renders at the correct pixel position
+- [x] Each overlay type renders with its correct visual style (blue/red/neutral glow)
+- [x] Overlay auto-dismisses after 8 seconds
+- [x] Multiple overlays render simultaneously without collision
+- [x] MaskOverlay renders RLE-decoded mask data onto canvas (test with fixture mask)
+- [x] Unit test: `useOverlay` hook manages add/remove/timeout lifecycle correctly
+
+Completed:
+- Added `tests/unit/client/OverlayRendering.test.tsx` to verify normalized-to-pixel mapping, visual style variants, multi-overlay rendering, and RLE mask drawing.
+- Added `tests/unit/client/useOverlay.test.tsx` to verify lifecycle transitions (entering -> visible -> exiting -> removed), explicit removal, and clear behavior.
