@@ -2,8 +2,8 @@
 
 | Field       | Value                         |
 | ----------- | ----------------------------- |
-| **Status**  | `Todo`                        |
-| **Owner**   | _Unassigned_                  |
+| **Status**  | `Done`                        |
+| **Owner**   | Farrell                       |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
 
@@ -14,6 +14,7 @@
 - `server/core/validation/__init__.py`
 - `server/core/validation/schemas.py`
 - `server/core/validation/validators.py`
+- `tests/unit/pipeline/test_validation.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 
@@ -28,10 +29,10 @@
 
 ## Verification
 
-- [ ] Valid golden response fixtures pass validation
-- [ ] Coordinates outside [0,1] are rejected
-- [ ] Missing required fields are rejected
-- [ ] Invalid `overlay_type` enum values are rejected
-- [ ] Low-confidence responses below threshold are rejected
-- [ ] Rejected responses return `None`, not an exception
-- [ ] Unit test: 5 valid and 5 invalid fixtures are correctly accepted/rejected
+- [x] Valid golden response fixtures pass validation
+- [x] Coordinates outside [0,1] are rejected
+- [x] Missing required fields are rejected
+- [x] Invalid `overlay_type` enum values are rejected
+- [x] Low-confidence responses below threshold are rejected
+- [x] Rejected responses return `None`, not an exception
+- [x] Unit test: 5 valid and 5 invalid fixtures are correctly accepted/rejected

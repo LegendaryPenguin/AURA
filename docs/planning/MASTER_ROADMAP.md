@@ -111,7 +111,7 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 | WS3-C | Server API | WebSocket route               | 2     | Phase 4     | Todo        |
 | WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Done        |
 | WS3-E | Server API | Streaming pipeline            | 3     | Phase 4     | Todo        |
-| WS3-F | Server API | Validation                    | 3     | Phase 1     | In-Progress |
+| WS3-F | Server API | Validation                    | 3     | Phase 1     | Done        |
 | WS4-A | Inference  | VLM backend                   | 4     | Phase 1     | In-Progress |
 | WS4-B | Inference  | Audio backend                 | 3     | Phase 2     | Todo        |
 | WS4-C | Inference  | Segmentation backend          | 4     | Phase 2     | Todo        |
