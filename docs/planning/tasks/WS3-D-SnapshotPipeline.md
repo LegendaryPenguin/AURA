@@ -19,6 +19,7 @@
 - `server/core/pipeline/stages/analyze.py`
 - `server/core/pipeline/stages/postprocess.py`
 - `server/core/pipeline/__init__.py`
+- `tests/unit/pipeline/test_snapshot_pipeline.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 

@@ -15,6 +15,7 @@
 - `server/api/routes/analyze.py`
 - `server/api/routes/health.py`
 - `server/api/middleware/rate_limit.py`
+- `tests/unit/api/test_rest_routes.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 

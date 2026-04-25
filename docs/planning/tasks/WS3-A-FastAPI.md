@@ -18,6 +18,7 @@
 - `server/api/middleware/cors.py`
 - `server/api/middleware/error_handler.py`
 - `server/api/middleware/__init__.py`
+- `tests/unit/api/test_fastapi_scaffold.py`
 
 > **Collision rule:** You may ONLY create or modify the files listed above. If you need functionality from another file, import — never edit.
 
