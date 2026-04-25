@@ -90,3 +90,17 @@ PromotionRecord:
 ## Residual Risks
 
 - Manual PWA/mobile checks can lag automation. Owner: WS2. Mitigation: explicit pending manual gate tracking.
+
+---
+
+## Agent Handoff Note
+
+- Current state (2026-04-25): WS2-H remains `Status: Done`, `Maturity: Implemented`.
+- Automated gates executed and passing in local repo venv:
+  - `pytest tests/contract/ -v`
+  - `npm test -- --run` (from `client/`)
+  - `pytest tests/integration/test_phase1_e2e.py -v`
+- Promotion guidance for next agent:
+  - `Implemented -> Integrated` is supported by current automated evidence.
+  - Do not promote to `Verified` until manual mobile PWA install/fullscreen verification is completed and captured as evidence.
+- Merge-safety note: no WS2-H code changes were made in this pass; this is documentation-only handoff context.
