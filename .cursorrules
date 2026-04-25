@@ -1,0 +1,91 @@
+# AURA — Agent Rules (Collision Prevention Protocol)
+
+## Source of Truth
+
+The MASTER ROADMAP is the single source of truth for all task assignments, file ownership, and phase gates:
+- **Location:** `docs/planning/MASTER_ROADMAP.md`
+- **Task definitions:** `docs/planning/tasks/`
+
+Before starting ANY work, you MUST:
+1. Read `docs/planning/MASTER_ROADMAP.md` to understand the current project state
+2. Read YOUR specific task file in `docs/planning/tasks/` to confirm your scope
+3. Verify your assigned files have not been claimed by another task
+
+---
+
+## Collision Prevention Protocol
+
+### Rule 1 — Strict File Ownership
+
+Every agent task lists its exact files in the task definition under "Scope — Owned Files."
+
+**You may ONLY create or modify files explicitly listed in your task's scope.**
+
+If you need functionality from a file you do not own, you MUST import it — NEVER edit it. Violating this rule will cause merge conflicts and block other agents.
+
+### Rule 2 — Directory Ownership by Workstream
+
+| Workstream | Owned Directories |
+| ---------- | ----------------- |
+| WS1 | `shared/`, `config/`, `scripts/`, `server/utils/`, `tests/fixtures/`, `tests/contract/` |
+| WS2 | `client/` (entire directory), `tests/unit/client/` |
+| WS3 | `server/main.py`, `server/api/`, `server/core/pipeline/`, `server/core/validation/`, `tests/unit/api/`, `tests/unit/pipeline/` |
+| WS4 | `server/core/inference/`, `server/core/tracking/`, `server/agents/`, `tests/unit/inference/`, `tests/unit/tracking/` |
+
+An agent in one workstream must NEVER modify files owned by another workstream.
+
+### Rule 3 — Interface-First Communication
+
+All cross-boundary calls MUST go through interfaces defined in `shared/interfaces/`:
+- `shared/interfaces/inference_base.py` — InferenceBackend
+- `shared/interfaces/pipeline_stage.py` — PipelineStage  
+- `shared/interfaces/tracker_base.py` — TrackerBackend
+
+If you need a dependency you don't own, use the mock from `tests/fixtures/mocks/`. Never import concrete implementations from another workstream.
+
+### Rule 4 — Schema Changes Require RFC
+
+Any change to files in `shared/schemas/` or `shared/interfaces/` requires sign-off from ALL affected workstreams before merge. These files are **append-only** where possible:
+- ADD fields — allowed
+- REMOVE or RENAME fields — forbidden without RFC
+
+### Rule 5 — Git Worktrees for Parallel Work
+
+Each agent operates in its own worktree on a dedicated feature branch:
+```
+git worktree add -b <workstream>/<task-name> ../<worktree-dir> main
+```
+
+Merge into the workstream integration branch via pull request only. Contract tests run on every PR. Merge is blocked if contract tests fail.
+
+---
+
+## Cross-Workstream Dependency Rules
+
+| From → To | Allowed Dependency | Mechanism |
+| --------- | ------------------ | --------- |
+| WS2 → WS1 | `shared/schemas/types.ts` | Import generated types. Read-only. |
+| WS3 → WS1 | `shared/schemas/*.json`, `shared/interfaces/*.py`, `server/utils/`, `config/` | Import schemas, interfaces, utils. Read-only. |
+| WS4 → WS1 | `shared/interfaces/*.py`, `server/utils/`, `config/models.yaml` | Implement interfaces, use utils. Read-only. |
+| WS3 → WS4 | `server/core/inference/`, `server/core/tracking/` | Call via abstract interface ONLY. Never import concrete classes. |
+| WS2 → WS3 | HTTP/WebSocket only | Client never imports server code. |
+| WS4 → WS3 | None | Inference backends have zero knowledge of routes or pipelines. |
+| WS2 → WS4 | None | Client has zero knowledge of inference backends. |
+
+---
+
+## Before Every Commit
+
+1. Confirm you only modified files in your task scope
+2. Run contract tests: `pytest tests/contract/ -v`
+3. Run your workstream's unit tests
+4. Verify your changes don't break the interface contract
+
+---
+
+## Task Status Updates
+
+After completing work, update your task file's Status field:
+- `Todo` → `In-Progress` → `Done`
+
+Update `docs/planning/MASTER_ROADMAP.md` task table to reflect current status.

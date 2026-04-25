@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Node.js
+node_modules/
+client/node_modules/
+
+# Build output
+client/dist/
+*.tsbuildinfo
+
+# Model weights — large binary files, never commit
+models/
+weights/
+*.pt
+*.pth
+*.bin
+*.onnx
+*.safetensors
+
+# SSL certificates
+certs/
+*.pem
+*.key
+*.crt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.nyc_output/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.production
+
+# Jupyter
+.ipynb_checkpoints/
+
+# CUDA / GPU cache
+__pycache__/
+.nv/
