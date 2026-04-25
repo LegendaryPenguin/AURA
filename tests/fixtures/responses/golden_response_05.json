@@ -1,12 +1,19 @@
 {
+  "request_id": "fixture-request-05",
   "session_id": "fixture-session-05",
+  "created_at": "2026-01-01T00:00:05Z",
   "overlays": [
     {
       "label": "Unknown component",
-      "bbox": [0.44, 0.27, 0.69, 0.55],
+      "bbox": {
+        "x": 0.44,
+        "y": 0.27,
+        "width": 0.25,
+        "height": 0.28
+      },
       "confidence": 0.52,
       "overlay_type": "info",
-      "ui_layer": "secondary",
+      "ui_layer": "midground",
       "action_required": true
     }
   ]
