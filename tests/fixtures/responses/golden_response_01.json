@@ -1,0 +1,13 @@
+{
+  "session_id": "fixture-session-01",
+  "overlays": [
+    {
+      "label": "Demo object",
+      "bbox": [0.21, 0.23, 0.52, 0.60],
+      "confidence": 0.94,
+      "overlay_type": "diagnostic",
+      "ui_layer": "primary",
+      "action_required": false
+    }
+  ]
+}

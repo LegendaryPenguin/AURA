@@ -1,0 +1,53 @@
+# Pipeline orchestration configuration.
+# Expected path contents:
+# - snapshot.output_dir: directory for optional saved debug snapshots
+
+orchestrator:
+  # Current execution phase used by WS3-D/WS3-E routing logic (0-5).
+  phase: 1
+  # If true, include per-stage timing details in response metadata.
+  include_timing_metadata: true
+
+timeouts:
+  # Maximum allowed end-to-end snapshot processing time.
+  total_request_timeout_ms: 2000
+  # Stage-level timeout budgets used by snapshot/streaming pipelines.
+  preprocess_ms: 200
+  transcribe_ms: 800
+  analyze_ms: 1200
+  segment_ms: 300
+  depth_ms: 150
+  postprocess_ms: 200
+
+preprocess:
+  # Required mime type for image payloads.
+  expected_image_format: "jpeg"
+  # Target dimensions fed to inference backends.
+  target_width: 1280
+  target_height: 720
+  # If true, preserve aspect ratio with padding when resizing.
+  keep_aspect_ratio: true
+  # Upper bound on decoded image payload size.
+  max_image_bytes: 4194304
+
+snapshot:
+  # Query used when audio transcription is empty or fails.
+  default_query: "What am I looking at?"
+  # If true, save intermediate payloads for debugging.
+  save_debug_artifacts: false
+  # Output location when debug artifacts are enabled.
+  output_dir: "./artifacts/snapshot"
+
+streaming:
+  # Interval between semantic re-queries while tracking.
+  requery_interval_ms: 2500
+  # Drop frames older than this age to avoid stale processing.
+  frame_drop_threshold_ms: 300
+  # Maximum queued frames per session before drop policy applies.
+  max_queue_size: 2
+  # If true, depth stage executes asynchronously and never blocks overlays.
+  depth_async: true
+  # IoU threshold below which tracker transitions to LOST.
+  tracker_lost_iou_threshold: 0.2
+  # Idle timeout before stale tracker/session state is cleaned up.
+  tracker_idle_timeout_seconds: 300

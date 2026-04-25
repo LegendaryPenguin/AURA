@@ -2,8 +2,8 @@
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
-| **Status**  | `Todo`                     |
-| **Owner**   | _Unassigned_               |
+| **Status**  | `Done`                     |
+| **Owner**   | Farrell                    |
 | **Sprint**  | Sprint 0 (Foundation)      |
 | **Stream**  | WS1 — Foundation & Contracts |
 
@@ -32,6 +32,8 @@
 
 ## Verification
 
-- [ ] YAML files parse without error (validate with `pyyaml`)
-- [ ] `config_loader.py` (WS1-E) successfully loads and validates each file
-- [ ] All referenced file paths in config have clear documentation on expected contents
+- [x] YAML files parse without error (validate with `pyyaml`)
+- [x] `config_loader.py` (WS1-E) successfully loads and validates each file
+- [x] All referenced file paths in config have clear documentation on expected contents
+
+`config_loader.py` verification completed via WS1-E; all WS1-C checks are satisfied.

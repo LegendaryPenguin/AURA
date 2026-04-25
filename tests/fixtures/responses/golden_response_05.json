@@ -1,0 +1,13 @@
+{
+  "session_id": "fixture-session-05",
+  "overlays": [
+    {
+      "label": "Unknown component",
+      "bbox": [0.44, 0.27, 0.69, 0.55],
+      "confidence": 0.52,
+      "overlay_type": "info",
+      "ui_layer": "secondary",
+      "action_required": true
+    }
+  ]
+}

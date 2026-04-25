@@ -1,0 +1,78 @@
+# Model/backend runtime configuration.
+# Expected path contents:
+# - paths.weights_root: local directory containing all downloaded model weights
+# - paths.cache_dir: writable cache directory for tokenizer/model artifacts
+
+global:
+  # Device selection for all backends ("auto", "cpu", "cuda").
+  device: "auto"
+  # Numerical precision used where backend supports it.
+  precision: "fp16"
+  # If true, startup continues even when one or more backends fail to load.
+  allow_partial_startup: true
+
+paths:
+  # Root folder for model binaries (e.g., qwen, sam2, whisper, depth-anything, llava).
+  weights_root: "./models"
+  # Shared cache path for tokenizers and runtime downloads.
+  cache_dir: "./models/cache"
+
+vlm:
+  # Primary VLM provider for semantic analysis.
+  provider: "qwen2.5-vl"
+  # OpenAI-compatible vLLM endpoint used by WS4-A.
+  endpoint: "http://127.0.0.1:8000/v1"
+  # Primary model identifier served by vLLM.
+  model_id: "Qwen/Qwen2.5-VL-7B-Instruct"
+  # Fallback model provider enabled when primary is unavailable.
+  fallback_provider: "llava"
+  # Timeout budget for a single VLM request in milliseconds.
+  timeout_ms: 1800
+  # Number of warmup calls on startup.
+  warmup_runs: 1
+  # Maximum response tokens for structured JSON output.
+  max_tokens: 512
+
+audio:
+  # Speech-to-text backend used by WS4-B.
+  provider: "whisper-base"
+  # Relative path under weights_root for audio model files.
+  model_path: "whisper/base"
+  # Maximum accepted audio duration for snapshot transcription.
+  max_duration_seconds: 12
+  # If true, empty/noise audio returns empty query instead of error.
+  allow_empty_transcript: true
+
+segmentation:
+  # Primary segmentation backend used for mask generation.
+  provider: "sam2-large"
+  # Fallback backend for optional higher-quality masks.
+  fallback_provider: "sam-hq"
+  # Relative path under weights_root for SAM2 checkpoint.
+  checkpoint_path: "sam2/sam2_large.pt"
+  # If true, keep video predictor state in memory for streaming.
+  persistent_video_predictor: true
+
+depth:
+  # Primary depth backend used in streaming phases.
+  provider: "depth-anything-v2"
+  # Fallback depth backend.
+  fallback_provider: "midas"
+  # Relative path under weights_root for depth model checkpoint.
+  checkpoint_path: "depth/depth_anything_v2.pth"
+  # Disable in early phases where depth is not required.
+  enabled: false
+
+generation:
+  # Stretch feature flag for image generation (WS4-F).
+  enabled: false
+  # Backend name for generation.
+  provider: "sdxl-turbo"
+  # Relative path under weights_root for generation model files.
+  model_path: "generation/sdxl_turbo"
+
+agents:
+  # Stretch feature flag for Fetch.ai agent integration (WS4-F).
+  enabled: false
+  # Agent runtime mode ("mock" is safe default for local demo).
+  mode: "mock"

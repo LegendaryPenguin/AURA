@@ -1,0 +1,13 @@
+{
+  "session_id": "fixture-session-03",
+  "overlays": [
+    {
+      "label": "Hot surface warning",
+      "bbox": [0.11, 0.35, 0.42, 0.84],
+      "confidence": 0.86,
+      "overlay_type": "hazard",
+      "ui_layer": "primary",
+      "action_required": true
+    }
+  ]
+}

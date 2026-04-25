@@ -1,0 +1,4 @@
+Fixture type: silence audio
+Expected transcript: ""
+Duration seconds: 3.0
+Format note: Placeholder transcript fixture for empty/noise handling tests.
