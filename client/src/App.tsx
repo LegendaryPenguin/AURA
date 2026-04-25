@@ -1,18 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-type OverlayBox = {
-  id: string;
-  label: string;
-  confidence: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-type AnalyzeResponse = {
-  overlays: OverlayBox[];
-};
+import OverlayCanvas from "./components/overlays/OverlayCanvas";
+import { useFallback } from "./hooks/useFallback";
+import { useFrameCapture } from "./hooks/useFrameCapture";
+import { useOverlay } from "./hooks/useOverlay";
+import { useSnapshotAnalysis } from "./hooks/useSnapshotAnalysis";
+import { ApiClientError } from "./services/api";
+import type { OverlayType, UiLayer } from "../../shared/schemas/types";
 
 const PHASES = [0, 1, 2, 3, 4, 5] as const;
 const phaseLabels: Record<number, string> = {
@@ -24,58 +18,43 @@ const phaseLabels: Record<number, string> = {
   5: "Real-Time Streaming",
 };
 
-const fallbackPayload: AnalyzeResponse = {
-  overlays: [
-    {
-      id: "fallback-1",
-      label: "Demo object",
-      confidence: 0.93,
-      x: 0.22,
-      y: 0.24,
-      width: 0.32,
-      height: 0.28,
-    },
-  ],
+const LAYER_BY_INDEX: readonly UiLayer[] = ["background", "midground", "foreground", "hud"] as const;
+const TYPE_BY_NAME: Record<string, OverlayType> = {
+  diagnostic: "diagnostic",
+  hazard: "hazard",
+  info: "info",
+  reference: "reference",
 };
 
-function drawOverlays(canvas: HTMLCanvasElement, overlays: OverlayBox[]): void {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    return;
-  }
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.lineWidth = 3;
-  ctx.font = "14px Inter, system-ui, sans-serif";
-  ctx.textBaseline = "top";
-
-  overlays.forEach((overlay) => {
-    const x = overlay.x * canvas.width;
-    const y = overlay.y * canvas.height;
-    const width = overlay.width * canvas.width;
-    const height = overlay.height * canvas.height;
-
-    ctx.strokeStyle = "#22c55e";
-    ctx.fillStyle = "rgba(34, 197, 94, 0.15)";
-    ctx.strokeRect(x, y, width, height);
-    ctx.fillRect(x, y, width, height);
-
-    const label = `${overlay.label} ${(overlay.confidence * 100).toFixed(0)}%`;
-    ctx.fillStyle = "#111827";
-    ctx.fillRect(x, Math.max(0, y - 22), ctx.measureText(label).width + 12, 20);
-    ctx.fillStyle = "#f9fafb";
-    ctx.fillText(label, x + 6, Math.max(0, y - 20) + 3);
-  });
-}
+const phase0DemoOverlay = {
+  bbox: { x: 0.22, y: 0.24, width: 0.32, height: 0.28 },
+  label: "Demo object",
+  confidence: 0.93,
+  ui_layer: "midground" as const,
+  overlay_type: "info" as const,
+  action_required: false,
+};
 
 export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [phaseMode, setPhaseMode] = useState<number>(2);
-  const [isLoading, setIsLoading] = useState(false);
+  const [phaseMode, setPhaseMode] = useState(1);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastResponse, setLastResponse] = useState<AnalyzeResponse>(fallbackPayload);
+
+  const { captureFrame } = useFrameCapture();
+  const overlay = useOverlay({ autoDismissMs: 60_000 });
+  const { fallbackData, isFallbackActive, clearFallback } = useFallback();
+
+  const captureForApi = useCallback(() => {
+    const result = captureFrame(videoRef.current);
+    if (!result) {
+      throw new ApiClientError("Could not read a frame from the camera.", "INVALID_RESPONSE");
+    }
+    const b64 = result.dataUrl.includes(",") ? (result.dataUrl.split(",")[1] ?? result.dataUrl) : result.dataUrl;
+    return b64;
+  }, [captureFrame]);
+
+  const snapshot = useSnapshotAnalysis({ captureFrame: captureForApi });
 
   const modeName = useMemo(() => phaseLabels[phaseMode] ?? "Unknown", [phaseMode]);
 
@@ -119,44 +98,52 @@ export default function App() {
   }, [phaseMode]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
+    if (phaseMode === 0) {
+      clearFallback();
+      overlay.replaceOverlays([phase0DemoOverlay]);
+    } else {
+      overlay.clearOverlays();
+    }
+  }, [phaseMode, clearFallback, overlay]);
+
+  useEffect(() => {
+    if (!isFallbackActive || !fallbackData) {
       return;
     }
-    drawOverlays(canvas, lastResponse.overlays);
-  }, [lastResponse]);
+    const mapped = fallbackData.overlays.map((o, i) => ({
+      id: `fallback-${i}`,
+      bbox: { x: o.bbox[0], y: o.bbox[1], width: o.bbox[2], height: o.bbox[3] },
+      label: o.label,
+      confidence: o.confidence,
+      ui_layer: LAYER_BY_INDEX[o.ui_layer] ?? "midground",
+      overlay_type: TYPE_BY_NAME[o.overlay_type] ?? "info",
+      action_required: o.action_required,
+    }));
+    overlay.replaceOverlays(mapped);
+  }, [isFallbackActive, fallbackData, overlay]);
 
   const runAnalyze = async () => {
-    setIsLoading(true);
+    if (phaseMode === 0) {
+      return;
+    }
     setError(null);
-
     try {
-      if (phaseMode === 0) {
-        setLastResponse(fallbackPayload);
-        return;
-      }
-
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phaseMode,
-          prompt: "What am I looking at?",
-          timestamp: Date.now(),
-        }),
+      const w = videoRef.current?.videoWidth ?? 0;
+      const h = videoRef.current?.videoHeight ?? 0;
+      const response = await snapshot.runAnalysis({
+        query: "What am I looking at?",
+        sessionId: "aura-app-shell",
+        captureTsMs: Date.now(),
+        frameSize: w > 0 && h > 0 ? { width: w, height: h } : undefined,
+        client: { platform: "web" },
       });
-
-      if (!response.ok) {
-        throw new Error(`Analyze failed with status ${response.status}`);
-      }
-
-      const payload = (await response.json()) as AnalyzeResponse;
-      setLastResponse(payload.overlays?.length ? payload : fallbackPayload);
+      overlay.hydrateFromResponse(response);
     } catch (analyzeError) {
-      setError((analyzeError as Error).message);
-      setLastResponse(fallbackPayload);
-    } finally {
-      setIsLoading(false);
+      setError(
+        analyzeError instanceof ApiClientError
+          ? analyzeError.message
+          : (analyzeError as Error).message,
+      );
     }
   };
 
@@ -180,8 +167,15 @@ export default function App() {
               </option>
             ))}
           </select>
-          <button onClick={runAnalyze} disabled={isLoading} style={styles.button} type="button">
-            {isLoading ? "Analyzing..." : "Capture + Analyze"}
+          <button
+            onClick={() => {
+              void runAnalyze();
+            }}
+            disabled={snapshot.isLoading || phaseMode === 0}
+            style={styles.button}
+            type="button"
+          >
+            {snapshot.isLoading ? "Analyzing..." : "Capture + Analyze"}
           </button>
         </div>
       </header>
@@ -200,14 +194,15 @@ export default function App() {
         ) : (
           <video ref={videoRef} style={styles.video} muted playsInline />
         )}
-        <canvas ref={canvasRef} width={960} height={540} style={styles.canvas} />
+        <OverlayCanvas overlays={overlay.overlays} />
       </section>
 
       <footer style={styles.statusBar}>
         <span>Mode: {modeName}</span>
         <span>Camera: {isCameraReady || phaseMode === 0 ? "ready" : "not ready"}</span>
-        <span>Overlay count: {lastResponse.overlays.length}</span>
-        {error ? <span style={styles.error}>Error: {error}</span> : <span>Connection: healthy</span>}
+        <span>Overlay count: {overlay.overlays.length}</span>
+        {error ? <span style={styles.error}>Error: {error}</span> : <span>Connection: ready</span>}
+        {snapshot.error ? <span style={styles.error}>API: {snapshot.error}</span> : null}
       </footer>
     </main>
   );
@@ -276,13 +271,6 @@ const styles: Record<string, React.CSSProperties> = {
     height: "100%",
     objectFit: "cover",
     display: "block",
-  },
-  canvas: {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    pointerEvents: "none",
   },
   statusBar: {
     display: "flex",

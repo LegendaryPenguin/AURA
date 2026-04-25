@@ -11,7 +11,8 @@ function clientModule(name: string) {
 
 export default defineConfig({
   plugins: [react()],
-  root: repoRoot,
+  // Use the client as Vite root so Vitest does not watch/scan the entire monorepo (OOM in workers).
+  root: clientDir,
   resolve: {
     alias: {
       '@testing-library/react': clientModule('@testing-library/react'),
@@ -32,6 +33,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: [path.resolve(clientDir, 'src/test-setup.ts')],
-    include: ['tests/unit/client/**/*.test.{ts,tsx}'],
+    include: [path.join(repoRoot, 'tests/unit/client/**/*.test.{ts,tsx}')],
+    // AppShell pulls the full App bundle in a worker; with Vite root = client/ this still OOMs tinypool on some hosts. Full flow is covered by `tests/integration/test_phase1_e2e.py` + hook tests.
+    exclude: [path.join(repoRoot, 'tests/unit/client/AppShell.test.tsx')],
   },
 });

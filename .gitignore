@@ -22,6 +22,7 @@ client/node_modules/
 # Build output
 client/dist/
 *.tsbuildinfo
+.vite/
 
 # Model weights — large binary files, never commit
 models/

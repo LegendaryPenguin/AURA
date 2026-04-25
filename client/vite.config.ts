@@ -6,13 +6,23 @@ export default defineConfig({
   server: {
     https: true,
     proxy: {
+      "/analyze": {
+        target: "https://localhost:8443",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/health": {
+        target: "https://localhost:8443",
+        changeOrigin: true,
+        secure: false,
+      },
       "/api": {
-        target: "https://localhost:8000",
+        target: "https://localhost:8443",
         changeOrigin: true,
         secure: false,
       },
       "/ws": {
-        target: "wss://localhost:8000",
+        target: "wss://localhost:8443",
         changeOrigin: true,
         secure: false,
         ws: true,

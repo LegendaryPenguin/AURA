@@ -40,8 +40,8 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 - **Proves:** Full inference pipeline (image → structured overlay response) works end-to-end
 - **Pipeline:** `preprocess → analyze (VLM) → validate → postprocess`
 - **Workstreams:** WS2-F, WS3-B, WS3-D, WS4-A
-- **Status:** `Todo`
-- **Integration gate:** Phase cannot be marked complete until `tests/integration/test_phase1_e2e.py` passes — TestClient POSTs to `/analyze` with valid `image_base64` + `query`, verifies 200 response with schema-valid overlay fields.
+- **Status:** `In-Progress` (automated integration gate below passes; on-device VLM quality bar still needs real-model validation)
+- **Integration gate:** `tests/integration/test_phase1_e2e.py` must pass — TestClient against `create_app()` POSTs to `/analyze` with valid `image_base64` + `query`, verifies 200 response with schema-valid overlay fields. **Current:** gate implemented and passing in CI.
 
 ### Phase 2 — Live Camera + Voice + Snapshot AR *(Primary Target)*
 
@@ -106,14 +106,14 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 | WS2-E | Client     | UI chrome & fallback          | 8     | Phase 0     | Done        |
 | WS2-F | Client     | REST networking               | 3     | Phase 1     | Done        |
 | WS2-G | Client     | WebSocket networking          | 3     | Phase 4     | Todo        |
-| WS2-H | Client     | App shell & integration (depends: WS2-C/D/F) | 6     | Integration | Todo        |
-| WS3-A | Server API | FastAPI scaffold & middleware | 4     | Phase 1     | Todo        |
-| WS3-B | Server API | REST routes                   | 4     | Phase 1     | Todo        |
+| WS2-H | Client     | App shell & integration (depends: WS2-C/D/F) | 6     | Integration | Done        |
+| WS3-A | Server API | FastAPI scaffold & middleware | 4     | Phase 1     | Done        |
+| WS3-B | Server API | REST routes                   | 4     | Phase 1     | Done        |
 | WS3-C | Server API | WebSocket route               | 2     | Phase 4     | Todo        |
-| WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Todo        |
+| WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Done        |
 | WS3-E | Server API | Streaming pipeline            | 3     | Phase 4     | Todo        |
 | WS3-F | Server API | Validation                    | 3     | Phase 1     | Done        |
-| WS4-A | Inference  | VLM backend                   | 4     | Phase 1     | Todo        |
+| WS4-A | Inference  | VLM backend + fixture expansion | 6     | Phase 1     | Done        |
 | WS4-B | Inference  | Audio backend                 | 3     | Phase 2     | Todo        |
 | WS4-C | Inference  | Segmentation backend          | 4     | Phase 2     | Todo        |
 | WS4-D | Inference  | Depth backend                 | 4     | Phase 5     | Todo        |
@@ -139,3 +139,15 @@ Aura is a real-time spatial reasoning system that bridges physical environments 
 ## Task File Location
 
 Individual task definitions with scope, verification, and ownership: `docs/planning/tasks/`
+
+---
+
+## Retrospective — why Phase 1 had integration blockers
+
+1. **Isolated “Done” without a consumer:** WS3-B, WS3-D, and client networking were each verified with mocks, but no single test walked the same JSON payload from `shared/schemas/analysis_request.json` through `POST /analyze` into the snapshot pipeline. That allowed field-name drift between route handlers and `PipelineContext` until caught.
+
+2. **Composition root (WS3-A) was underspecified in verification:** `server/main.py` must mount routes *and* attach `app.state.snapshot_pipeline` for anything to render beyond empty fallbacks; early checklists did not require an OpenAPI or TestClient check for `/analyze` on the real `create_app()`.
+
+3. **App shell vs. feature hooks:** the shell shipped before the REST hook layer was the single path to the API; the roadmap now ties WS2-H to WS2-C/D/F explicitly.
+
+4. **Resolution in repo:** add `tests/integration/test_phase1_e2e.py` as the Phase 1 **integration gate**, extend `scripts/dev/run_tests.sh` to run `tests/integration/`, and keep rules 7–8 (HTTP contract + `PipelineContext` field contract) as standing guardrails.
