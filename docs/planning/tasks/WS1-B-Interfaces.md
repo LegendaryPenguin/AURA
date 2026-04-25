@@ -2,8 +2,8 @@
 
 | Field       | Value                      |
 | ----------- | -------------------------- |
-| **Status**  | `Todo`                     |
-| **Owner**   | _Unassigned_               |
+| **Status**  | `Done`                     |
+| **Owner**   | Nischay                    |
 | **Sprint**  | Sprint 0 (Foundation)      |
 | **Stream**  | WS1 — Foundation & Contracts |
 
@@ -30,6 +30,6 @@
 
 ## Verification
 
-- [ ] All abstract classes are importable with zero dependencies beyond stdlib and typing
-- [ ] A trivial concrete implementation can be written and instantiated (include a NoOp example in tests)
-- [ ] Type hints are complete — mypy passes with strict mode
+- [x] All abstract classes are importable with zero dependencies beyond stdlib and typing
+- [x] A trivial concrete implementation can be written and instantiated (include a NoOp example in tests)
+- [x] Type hints are complete — mypy passes with strict mode
