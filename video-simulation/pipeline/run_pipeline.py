@@ -169,7 +169,7 @@ def main() -> None:
     parser.add_argument(
         "--style",
         default="paper_clean",
-        choices=["paper_clean", "hybrid", "minimal", "paper_3b1b"],
+        choices=["paper_clean", "hybrid", "minimal", "paper_3b1b", "side_by_side_blueprint"],
         help="Rendering style profile",
     )
     parser.add_argument("--allow-low-confidence", action="store_true", help="Accepted for compatibility; always-render mode in this package")

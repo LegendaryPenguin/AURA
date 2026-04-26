@@ -53,6 +53,7 @@ const phase0DemoOverlay = {
 export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const activeStreamRef = useRef<MediaStream | null>(null);
+  const lastCaptureDataUrlRef = useRef<string | null>(null);
   const [phaseMode, setPhaseMode] = useState<number>(1);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +80,7 @@ export default function App() {
     if (!result) {
       throw new ApiClientError("Could not read a frame from the camera.", "INVALID_RESPONSE");
     }
+    lastCaptureDataUrlRef.current = result.dataUrl;
     setLastCaptureDataUrl(result.dataUrl);
     const b64 = result.dataUrl.includes(",") ? (result.dataUrl.split(",")[1] ?? result.dataUrl) : result.dataUrl;
     return b64;
@@ -364,9 +366,10 @@ export default function App() {
       });
       hydrateFromResponse(response);
       setLastResponseJson(JSON.stringify(response, null, 2));
-      if (lastCaptureDataUrl) {
+      const captureForPreview = lastCaptureDataUrlRef.current;
+      if (captureForPreview) {
         try {
-          const overlayPreview = await buildOverlayPreview(lastCaptureDataUrl, response.overlays);
+          const overlayPreview = await buildOverlayPreview(captureForPreview, response.overlays);
           setLastOverlayPreviewDataUrl(overlayPreview);
         } catch {
           setLastOverlayPreviewDataUrl(null);

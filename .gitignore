@@ -44,6 +44,7 @@ certs/
 *.swp
 *.swo
 *~
+.cursor/
 
 # OS files
 .DS_Store
@@ -71,3 +72,9 @@ htmlcov/
 # CUDA / GPU cache
 __pycache__/
 .nv/
+
+# Local runtime/build artifacts
+.venv-vllm/
+.hf/
+.vite/
+artifacts/
