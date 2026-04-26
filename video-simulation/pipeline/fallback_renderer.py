@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -1035,10 +1036,12 @@ def _render_side_by_side_blueprint(
     # Part 1
     source = None
     source_path = image_path
-    for candidate in PREFERRED_IPAD_IMAGE_CANDIDATES:
-        if Path(candidate).exists():
-            source_path = candidate
-            break
+    use_input_image = os.getenv("AURA_VIDEO_SIM_FORCE_INPUT_IMAGE", "0").lower() in {"1", "true", "yes", "on"}
+    if not use_input_image:
+        for candidate in PREFERRED_IPAD_IMAGE_CANDIDATES:
+            if Path(candidate).exists():
+                source_path = candidate
+                break
     try:
         source = Image.open(source_path).convert("RGBA")
     except Exception:
