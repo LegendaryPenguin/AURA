@@ -36,3 +36,12 @@
 - [x] `GET /health` returns per-model status JSON
 - [x] Concurrent `POST /analyze` requests: first gets 200, second gets 429
 - [x] Unit test: rate limiter correctly blocks concurrent requests and releases after completion
+
+---
+
+## Current Execution Note (2026-04-25)
+
+- Status for this pass: `DoNotPromote`
+- Evidence index: `docs/planning/phase01_promotion_evidence.md`
+- Changes landed: stricter JSON boundary checks in `/analyze` plus new route tests.
+- Remaining gap: run server verification gates in a Python environment with project deps.

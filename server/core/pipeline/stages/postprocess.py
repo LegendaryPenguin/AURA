@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from shared.interfaces.pipeline_stage import PipelineContext, PipelineStage
+from server.core.validation.validators import validate_overlay_response
 
 _VALID_UI_LAYERS = {"background", "midground", "foreground", "hud"}
 _VALID_OVERLAY_TYPES = {"diagnostic", "hazard", "info", "reference"}
@@ -52,6 +53,7 @@ def _validate_overlay(overlay: Any) -> None:
 class PostprocessStage(PipelineStage):
     def __init__(self, config: dict[str, Any]) -> None:
         self._config = config
+        self._confidence_floor = float(config.get("validation", {}).get("confidence_floor", 0.0))
 
     def execute(self, context: PipelineContext) -> PipelineContext:
         response = context.response or {}
@@ -88,5 +90,9 @@ class PostprocessStage(PipelineStage):
         if warnings and isinstance(warnings, list):
             payload["warnings"] = warnings
 
-        context.response = payload
+        validated_payload = validate_overlay_response(payload, confidence_floor=self._confidence_floor)
+        if validated_payload is None:
+            raise ValueError("Postprocess: payload failed schema validation")
+
+        context.response = validated_payload
         return context

@@ -1,8 +1,14 @@
 import type { AnalysisRequest, HealthResponse, OverlayResponse } from "../types/overlay";
 
-const REQUEST_TIMEOUT_MS = 5000;
+const REQUEST_TIMEOUT_MS = (() => {
+  const value = Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS ?? "60000");
+  return Number.isFinite(value) && value > 0 ? value : 60000;
+})();
 const DEFAULT_HEADERS = { "Content-Type": "application/json" } as const;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
+const REAL_API_BASE_URL = import.meta.env.VITE_API_BASE_URL_REAL?.trim() ?? "";
+
+export type BackendMode = "real";
 
 export type ApiErrorCode =
   | "BAD_REQUEST"
@@ -37,13 +43,32 @@ const OVERLAY_TYPES = new Set(["diagnostic", "hazard", "info", "reference"]);
 const UI_LAYERS = new Set(["background", "midground", "foreground", "hud"]);
 const isIsoDatetime = (value: string): boolean => !Number.isNaN(Date.parse(value));
 
-const buildUrl = (path: string): string => {
-  if (!API_BASE_URL) {
-    return path;
+const normalizeBaseUrl = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
   }
-  const normalizedBase = API_BASE_URL.endsWith("/") ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+};
+
+export const getBackendMode = (): BackendMode => "real";
+
+export const setBackendMode = (_mode: BackendMode): void => {
+  // Real backend is mandatory; ignore runtime mode changes.
+};
+
+export const getBackendTarget = (): { mode: BackendMode; baseUrl: string } => {
+  const baseUrl = normalizeBaseUrl(REAL_API_BASE_URL) || normalizeBaseUrl(API_BASE_URL);
+  return { mode: "real", baseUrl };
+};
+
+const buildUrl = (path: string): string => {
+  const { baseUrl } = getBackendTarget();
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${normalizedBase}${normalizedPath}`;
+  if (!baseUrl) {
+    return `/api${normalizedPath}`;
+  }
+  return `${baseUrl}${normalizedPath}`;
 };
 
 const mapHttpError = (status: number): ApiClientError => {
@@ -148,7 +173,6 @@ const validateHealthResponse = (value: unknown): HealthResponse => {
 async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
   const controller = new AbortController();
   const timeoutHandle = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
   try {
     const response = await fetch(url, {
       ...init,
@@ -170,7 +194,7 @@ async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
     }
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new ApiClientError(
-        "Request timed out after 5 seconds. Please try again.",
+        `Request timed out after ${Math.round(REQUEST_TIMEOUT_MS / 1000)} seconds. Please try again.`,
         "REQUEST_TIMEOUT",
         408,
         true,
@@ -189,7 +213,7 @@ async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
 }
 
 export async function postAnalyze(payload: AnalysisRequest): Promise<OverlayResponse> {
-  const raw = await fetchJson(buildUrl("/api/analyze"), {
+  const raw = await fetchJson(buildUrl("/analyze"), {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -197,7 +221,7 @@ export async function postAnalyze(payload: AnalysisRequest): Promise<OverlayResp
 }
 
 export async function getHealth(): Promise<HealthResponse> {
-  const raw = await fetchJson(buildUrl("/api/health"), {
+  const raw = await fetchJson(buildUrl("/health"), {
     method: "GET",
   });
   return validateHealthResponse(raw);

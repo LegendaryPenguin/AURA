@@ -47,3 +47,12 @@ Each stage implements the `PipelineStage` interface. Each stage receives and ret
 - [x] Per-stage timeout fires and returns 408 (test with a mock that sleeps)
 - [x] Postprocess validates output against schema and rejects malformed VLM output
 - [x] Unit test per stage: each stage independently transforms `PipelineContext` correctly
+
+---
+
+## Current Execution Note (2026-04-25)
+
+- Status for this pass: `DoNotPromote`
+- Evidence index: `docs/planning/phase01_promotion_evidence.md`
+- Changes landed: postprocess now calls runtime validator with confidence floor integration.
+- Remaining gap: run WS3 verification suite in dependency-complete Python environment.

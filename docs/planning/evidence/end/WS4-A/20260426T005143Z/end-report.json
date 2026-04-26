@@ -1,0 +1,23 @@
+{
+  "task": {
+    "task_id": "WS4-A",
+    "task_file": "/home/asus/Documents/AURA/docs/planning/tasks/WS4-A-VLM.md",
+    "status": "Done",
+    "maturity": null,
+    "owner": "Farrell",
+    "phase": "Phase 1",
+    "stream": "WS4 \u2014 Inference & Tracking",
+    "missing_sections": [
+      "Dependencies",
+      "Promotion Evidence",
+      "Rollback",
+      "Residual Risks"
+    ],
+    "upstream_tasks": "",
+    "downstream_tasks": ""
+  },
+  "promotion_outcome": "DoNotPromote",
+  "checklist_status": "fail",
+  "dry_run": "true",
+  "strict": "false"
+}

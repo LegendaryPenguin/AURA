@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "stage",
+    "display_steps",
+    "explanation_steps",
+    "narration_intro",
+    "narration_outro",
+    "draft_mode",
+    "render_quality_grade",
+    "uncertainty_reasons"
+  ],
+  "properties": {
+    "stage": { "const": "narrate" },
+    "display_steps": { "type": "array", "items": { "type": "string" } },
+    "explanation_steps": { "type": "array", "items": { "type": "object" } },
+    "narration_intro": { "type": "string" },
+    "narration_outro": { "type": "string" },
+    "draft_mode": { "type": "boolean" },
+    "render_quality_grade": { "enum": ["low", "medium", "high"] },
+    "uncertainty_reasons": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

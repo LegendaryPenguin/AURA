@@ -1,0 +1,23 @@
+{
+  "task": {
+    "task_id": "WS3-B",
+    "task_file": "/home/asus/Documents/AURA/docs/planning/tasks/WS3-B-RESTRoutes.md",
+    "status": "Done",
+    "maturity": null,
+    "owner": "Farrell",
+    "phase": "Phase 1",
+    "stream": "WS3 \u2014 Server API & Pipeline",
+    "missing_sections": [
+      "Dependencies",
+      "Promotion Evidence",
+      "Rollback",
+      "Residual Risks"
+    ],
+    "upstream_tasks": "",
+    "downstream_tasks": ""
+  },
+  "promotion_outcome": "DoNotPromote",
+  "checklist_status": "fail",
+  "dry_run": "true",
+  "strict": "false"
+}
