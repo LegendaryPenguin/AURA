@@ -50,7 +50,235 @@ const phase0DemoOverlay = {
   action_required: false,
 };
 
-export default function App() {
+interface VideoSimCaptureCreateResponse {
+  job_id: string;
+  status: string;
+  status_url: string;
+  video_url: string;
+}
+
+interface VideoSimJobStatusResponse {
+  job_id: string;
+  status: "queued" | "running" | "done" | "error";
+  message?: string;
+  error?: string | null;
+  video_url?: string;
+  elapsed_seconds?: number;
+}
+
+function resolveApiUrl(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const target = getBackendTarget().baseUrl;
+  const alreadyApiPrefixed = normalized.startsWith("/api/");
+  if (!target) {
+    return alreadyApiPrefixed ? normalized : `/api${normalized}`;
+  }
+  return `${target}${normalized}`;
+}
+
+function PhoneCaptureApp() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [jobId, setJobId] = useState<string>("");
+  const [status, setStatus] = useState<VideoSimJobStatusResponse["status"] | "idle">("idle");
+  const [statusMessage, setStatusMessage] = useState<string>("Ready to capture.");
+  const [videoUrl, setVideoUrl] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [cameraReady, setCameraReady] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string>("");
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+        cameraStreamRef.current = null;
+      }
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    if (!jobId || status === "done" || status === "error" || status === "idle") {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      void (async () => {
+        try {
+          const response = await fetch(resolveApiUrl(`/video-sim/jobs/${jobId}`));
+          if (!response.ok) {
+            throw new Error(`status polling failed (${response.status})`);
+          }
+          const payload = (await response.json()) as VideoSimJobStatusResponse;
+          setStatus(payload.status);
+          const elapsed = typeof payload.elapsed_seconds === "number" ? ` (${payload.elapsed_seconds}s)` : "";
+          setStatusMessage(`${payload.message || payload.status}${elapsed}`);
+          if (payload.status === "done") {
+            const resolvedVideoUrl = resolveApiUrl(payload.video_url || `/video-sim/video/${jobId}`);
+            setVideoUrl(resolvedVideoUrl);
+            window.clearInterval(interval);
+          } else if (payload.status === "error") {
+            setStatusMessage(payload.error || payload.message || "Video generation failed.");
+            window.clearInterval(interval);
+          }
+        } catch (err) {
+          setStatus("error");
+          setStatusMessage(err instanceof Error ? err.message : "Polling failed.");
+          window.clearInterval(interval);
+        }
+      })();
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [jobId, status]);
+
+  const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    setSelectedFile(nextFile);
+    setVideoUrl("");
+    setJobId("");
+    setStatus("idle");
+    setStatusMessage(nextFile ? "Image selected." : "Ready to capture.");
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(nextFile ? URL.createObjectURL(nextFile) : "");
+  };
+
+  const startCamera = async () => {
+    try {
+      setCameraError("");
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+        cameraStreamRef.current = null;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+        await cameraVideoRef.current.play();
+      }
+      setCameraReady(true);
+    } catch (err) {
+      setCameraReady(false);
+      setCameraError(err instanceof Error ? err.message : "Unable to access camera.");
+    }
+  };
+
+  const captureFromCamera = async () => {
+    const video = cameraVideoRef.current;
+    if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) {
+      setCameraError("Camera is not ready yet.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setCameraError("Canvas unavailable for capture.");
+      return;
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    if (!blob) {
+      setCameraError("Could not capture image.");
+      return;
+    }
+    const capturedFile = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+    setSelectedFile(capturedFile);
+    setVideoUrl("");
+    setJobId("");
+    setStatus("idle");
+    setStatusMessage("Camera image captured.");
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(URL.createObjectURL(capturedFile));
+  };
+
+  const onGenerate = async () => {
+    if (!selectedFile) {
+      setStatus("error");
+      setStatusMessage("Please capture a photo first.");
+      return;
+    }
+    setIsSubmitting(true);
+    setStatus("queued");
+    setStatusMessage("Uploading photo...");
+    setVideoUrl("");
+    try {
+      const form = new FormData();
+      form.append("image", selectedFile, selectedFile.name || "capture.jpg");
+      const response = await fetch(resolveApiUrl("/video-sim/capture"), {
+        method: "POST",
+        body: form,
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Upload failed (${response.status}): ${text}`);
+      }
+      const payload = (await response.json()) as VideoSimCaptureCreateResponse;
+      setJobId(payload.job_id);
+      setStatus("running");
+      setStatusMessage("Generating video...");
+    } catch (err) {
+      setStatus("error");
+      setStatusMessage(err instanceof Error ? err.message : "Request failed.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <main style={phoneStyles.app}>
+      <section style={phoneStyles.card}>
+        <h1 style={phoneStyles.title}>Phone Capture Video Simulation</h1>
+        <p style={phoneStyles.subtitle}>Take a photo, then generate the tutorial MP4 with your capture as the original handwritten work.</p>
+        <label style={phoneStyles.fileLabel}>
+          <span>Upload image (fallback)</span>
+          <input
+            accept="image/*"
+            capture="environment"
+            onChange={onFileChange}
+            style={phoneStyles.fileInput}
+            type="file"
+          />
+        </label>
+        <div style={phoneStyles.cameraControls}>
+          <button onClick={() => void startCamera()} style={phoneStyles.secondaryButton} type="button">
+            Open camera
+          </button>
+          <button disabled={!cameraReady} onClick={() => void captureFromCamera()} style={phoneStyles.secondaryButton} type="button">
+            Capture from camera
+          </button>
+        </div>
+        <video autoPlay muted playsInline ref={cameraVideoRef} style={phoneStyles.cameraPreview} />
+        {cameraError ? <p style={phoneStyles.cameraError}>Camera: {cameraError}</p> : null}
+        {previewUrl ? <img alt="Captured preview" src={previewUrl} style={phoneStyles.preview} /> : null}
+        <button disabled={!selectedFile || isSubmitting} onClick={() => void onGenerate()} style={phoneStyles.button} type="button">
+          {isSubmitting ? "Submitting..." : "Generate video"}
+        </button>
+        <p style={phoneStyles.status}>Status: {statusMessage}</p>
+        {videoUrl ? (
+          <section style={phoneStyles.videoSection}>
+            <video controls playsInline src={videoUrl} style={phoneStyles.video} />
+            <a download href={videoUrl} style={phoneStyles.downloadLink}>
+              Download MP4
+            </a>
+          </section>
+        ) : null}
+      </section>
+    </main>
+  );
+}
+
+function MainAuraApp() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const activeStreamRef = useRef<MediaStream | null>(null);
   const lastCaptureDataUrlRef = useRef<string | null>(null);
@@ -378,6 +606,8 @@ export default function App() {
       const firstLabel = response.overlays[0]?.label ?? "none";
       pushLog(`Analyze success (real) overlays=${response.overlays.length} first=${firstLabel}`);
     } catch (analyzeError) {
+      clearOverlays();
+      setLastOverlayPreviewDataUrl(null);
       setError(
         analyzeError instanceof ApiClientError
           ? analyzeError.message
@@ -530,6 +760,13 @@ export default function App() {
       ) : null}
     </main>
   );
+}
+
+export default function App() {
+  if (typeof window !== "undefined" && window.location.pathname === "/phone-capture") {
+    return <PhoneCaptureApp />;
+  }
+  return <MainAuraApp />;
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -685,5 +922,112 @@ const styles: Record<string, React.CSSProperties> = {
     objectFit: "contain",
     borderRadius: "0.4rem",
     border: "1px solid #334155",
+  },
+};
+
+const phoneStyles: Record<string, React.CSSProperties> = {
+  app: {
+    minHeight: "100vh",
+    background: "#020617",
+    color: "#e2e8f0",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    padding: "1rem",
+    fontFamily: "Inter, system-ui, sans-serif",
+  },
+  card: {
+    width: "100%",
+    maxWidth: "680px",
+    background: "#0b1220",
+    border: "1px solid #1f2a44",
+    borderRadius: "12px",
+    padding: "1rem",
+    display: "grid",
+    gap: "0.75rem",
+  },
+  title: {
+    margin: 0,
+    fontSize: "1.15rem",
+  },
+  subtitle: {
+    margin: 0,
+    color: "#94a3b8",
+    fontSize: "0.9rem",
+  },
+  fileLabel: {
+    display: "grid",
+    gap: "0.4rem",
+    fontSize: "0.9rem",
+  },
+  fileInput: {
+    border: "1px solid #334155",
+    borderRadius: "8px",
+    background: "#0f172a",
+    color: "#e2e8f0",
+    padding: "0.55rem",
+  },
+  preview: {
+    width: "100%",
+    borderRadius: "10px",
+    border: "1px solid #334155",
+    objectFit: "cover",
+    maxHeight: "360px",
+  },
+  button: {
+    padding: "0.7rem 0.9rem",
+    borderRadius: "8px",
+    border: "1px solid #2563eb",
+    background: "#2563eb",
+    color: "white",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  secondaryButton: {
+    padding: "0.62rem 0.8rem",
+    borderRadius: "8px",
+    border: "1px solid #334155",
+    background: "#0f172a",
+    color: "#e2e8f0",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  cameraControls: {
+    display: "flex",
+    gap: "0.5rem",
+    flexWrap: "wrap",
+  },
+  cameraPreview: {
+    width: "100%",
+    borderRadius: "10px",
+    border: "1px solid #334155",
+    background: "black",
+    maxHeight: "260px",
+    objectFit: "cover",
+  },
+  cameraError: {
+    margin: 0,
+    color: "#fda4af",
+    fontSize: "0.85rem",
+  },
+  status: {
+    margin: 0,
+    color: "#cbd5e1",
+    fontSize: "0.9rem",
+  },
+  videoSection: {
+    display: "grid",
+    gap: "0.5rem",
+  },
+  video: {
+    width: "100%",
+    borderRadius: "10px",
+    border: "1px solid #334155",
+    background: "black",
+  },
+  downloadLink: {
+    color: "#93c5fd",
+    textDecoration: "underline",
+    fontSize: "0.9rem",
   },
 };
