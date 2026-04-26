@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 from datetime import UTC, datetime
 from typing import Any
@@ -91,8 +92,12 @@ async def _run_snapshot_pipeline(request: Request, context: PipelineContext) -> 
     session_id = (context.response or {}).get("session_id", "")
     if not isinstance(session_id, str):
         session_id = str(session_id)
+
+    def _run_sync() -> PipelineContext:
+        return pipeline.run(context, session_id=session_id)
+
     try:
-        result = pipeline.run(context, session_id=session_id)
+        result = await asyncio.to_thread(_run_sync)
     except PipelineTimeoutError as exc:
         raise exc
     if result.response is None:

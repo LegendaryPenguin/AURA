@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { OverlayStateItem } from "../../hooks/useOverlay";
 import { decodeRle } from "./MaskOverlay";
@@ -83,6 +83,19 @@ function drawMaskInsideBoundingBox(
 
 export default function OverlayCanvas({ overlays, className, style }: OverlayCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    const parent = canvasRef.current?.parentElement;
+    if (!parent) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      setContainerSize({ w: width, h: height });
+    });
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, []);
 
   const sortedOverlays = useMemo(
     () => [...overlays].sort((a, b) => UI_LAYER_ORDER[a.ui_layer] - UI_LAYER_ORDER[b.ui_layer]),
@@ -133,7 +146,7 @@ export default function OverlayCanvas({ overlays, className, style }: OverlayCan
       ctx.fillStyle = "#e2e8f0";
       ctx.fillText(label, x + 6, labelY + 3);
     });
-  }, [sortedOverlays]);
+  }, [sortedOverlays, containerSize]);
 
   return (
     <canvas

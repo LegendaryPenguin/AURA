@@ -147,7 +147,9 @@ class TestTranscribeStage:
     def test_uses_transcript_when_audio_present(self) -> None:
         backend = MockInferenceBackend()
         backend.load()
-        stage = TranscribeStage(backend, _pipeline_config())
+        whisper = MockInferenceBackend()
+        whisper.load()
+        stage = TranscribeStage(backend, _pipeline_config(), whisper_backend=whisper)
         audio_b64 = base64.b64encode(b"some audio data").decode()
         ctx = PipelineContext(response={"audio_base64": audio_b64})
         result = stage.execute(ctx)

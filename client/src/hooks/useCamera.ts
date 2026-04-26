@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type CameraFacing = "user" | "environment";
 
@@ -29,11 +29,12 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const startingRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [facing, setFacing] = useState<CameraFacing>(initialFacing);
 
-  const stop = useCallback(() => {
+  const stopStream = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -45,8 +46,15 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     setIsReady(false);
   }, []);
 
+  const stop = useCallback(() => {
+    startingRef.current = false;
+    stopStream();
+  }, [stopStream]);
+
   const start = useCallback(async () => {
-    stop();
+    if (startingRef.current) return;
+    startingRef.current = true;
+    stopStream();
     setError(null);
 
     try {
@@ -58,19 +66,39 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
         },
         audio: false,
       });
-      streamRef.current = stream;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setIsReady(true);
+      if (!startingRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
       }
+
+      streamRef.current = stream;
+      const video = videoRef.current;
+      if (!video) {
+        startingRef.current = false;
+        return;
+      }
+
+      video.srcObject = stream;
+      await new Promise<void>((resolve) => {
+        if (video.readyState >= 2) { resolve(); return; }
+        video.addEventListener("loadeddata", () => resolve(), { once: true });
+      });
+
+      if (!startingRef.current) return;
+      await video.play();
+      setIsReady(true);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
       const msg = err instanceof Error ? err.message : "Camera unavailable";
       setError(msg);
       setIsReady(false);
+    } finally {
+      startingRef.current = false;
     }
-  }, [facing, width, height, stop]);
+  }, [facing, width, height, stopStream]);
 
   const switchFacing = useCallback(async () => {
     const next = facing === "environment" ? "user" : "environment";
@@ -92,5 +120,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { videoRef, isReady, error, start, stop, switchFacing, facing };
+  return useMemo(() => ({
+    videoRef, isReady, error, start, stop, switchFacing, facing,
+  }), [videoRef, isReady, error, start, stop, switchFacing, facing]);
 }

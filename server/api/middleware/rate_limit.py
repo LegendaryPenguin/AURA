@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -16,6 +17,7 @@ _state_lock = asyncio.Lock()
 _analyze_in_progress = False
 
 
+@functools.lru_cache(maxsize=1)
 def _load_rate_limit_config() -> dict[str, Any]:
     try:
         config = load_and_validate(_SERVER_CONFIG_PATH)

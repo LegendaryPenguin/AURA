@@ -1,6 +1,6 @@
 import type { AnalysisRequest, HealthResponse, OverlayResponse } from "../types/overlay";
 
-const REQUEST_TIMEOUT_MS = 5000;
+const REQUEST_TIMEOUT_MS = 15_000;
 const DEFAULT_HEADERS = { "Content-Type": "application/json" } as const;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
 
@@ -143,7 +143,7 @@ async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
     }
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new ApiClientError(
-        "Request timed out after 5 seconds. Please try again.",
+        "Request timed out. Please try again.",
         "REQUEST_TIMEOUT",
         408,
         true,

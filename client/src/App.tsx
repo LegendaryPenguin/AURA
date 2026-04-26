@@ -11,7 +11,7 @@ import { useCamera } from "./hooks/useCamera";
 import { useAudioRecorder } from "./hooks/useAudioRecorder";
 import { useAutoScan } from "./hooks/useAutoScan";
 import { ApiClientError } from "./services/api";
-import type { OverlayType, UiLayer } from "../../shared/schemas/types";
+import type { OverlayResponse, OverlayType, UiLayer } from "./types/overlay";
 
 const PHASES = [0, 1, 2, 3] as const;
 const phaseLabels: Record<number, string> = {
@@ -41,6 +41,8 @@ const phase0DemoOverlay = {
 export default function App() {
   const [phaseMode, setPhaseMode] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [lastResponse, setLastResponse] = useState<OverlayResponse | null>(null);
+  const [statusMsg, setStatusMsg] = useState<string>("");
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "reconnecting">("disconnected");
 
   const camera = useCamera({
@@ -50,11 +52,18 @@ export default function App() {
 
   const audio = useAudioRecorder();
   const { captureFrame } = useFrameCapture();
-  const overlay = useOverlay({ autoDismissMs: 60_000 });
+  const { overlays, replaceOverlays, clearOverlays, hydrateFromResponse } = useOverlay({ autoDismissMs: 60_000 });
   const { fallbackData, isFallbackActive, clearFallback } = useFallback();
 
   const captureForApi = useCallback(() => {
-    const result = captureFrame(camera.videoRef.current);
+    const video = camera.videoRef.current;
+    if (!video) {
+      throw new ApiClientError("Camera video element is not mounted.", "INVALID_RESPONSE");
+    }
+    if (video.readyState < 2) {
+      throw new ApiClientError("Camera is not ready yet. Please wait a moment.", "INVALID_RESPONSE");
+    }
+    const result = captureFrame(video);
     if (!result) {
       throw new ApiClientError("Could not read a frame from the camera.", "INVALID_RESPONSE");
     }
@@ -65,7 +74,7 @@ export default function App() {
   const recordAudioForApi = useCallback(async () => {
     if (phaseMode < 2) return undefined;
     return audio.stopRecording();
-  }, [phaseMode, audio]);
+  }, [phaseMode, audio.stopRecording]);
 
   const snapshot = useSnapshotAnalysis({
     captureFrame: captureForApi,
@@ -77,43 +86,53 @@ export default function App() {
   useEffect(() => {
     if (phaseMode === 0) {
       camera.stop();
-    } else {
-      void camera.start();
+      return;
     }
+    void camera.start();
+    return () => {
+      camera.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseMode]);
 
   useEffect(() => {
     if (phaseMode === 0) {
       clearFallback();
-      overlay.replaceOverlays([phase0DemoOverlay]);
+      replaceOverlays([phase0DemoOverlay]);
     } else {
-      overlay.clearOverlays();
+      clearOverlays();
     }
-  }, [phaseMode, clearFallback, overlay]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phaseMode]);
 
   useEffect(() => {
     if (!isFallbackActive || !fallbackData) return;
     const mapped = fallbackData.overlays.map((o, i) => ({
       id: `fallback-${i}`,
-      bbox: { x: o.bbox[0], y: o.bbox[1], width: o.bbox[2], height: o.bbox[3] },
+      bbox: {
+        x: o.bbox[0],
+        y: o.bbox[1],
+        width: o.bbox[2] - o.bbox[0],
+        height: o.bbox[3] - o.bbox[1],
+      },
       label: o.label,
       confidence: o.confidence,
       ui_layer: LAYER_BY_INDEX[o.ui_layer] ?? "midground",
       overlay_type: TYPE_BY_NAME[o.overlay_type] ?? "info",
       action_required: o.action_required,
     }));
-    overlay.replaceOverlays(mapped);
-  }, [isFallbackActive, fallbackData, overlay]);
+    replaceOverlays(mapped);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFallbackActive, fallbackData]);
 
-  // Health check to set connection status
   useEffect(() => {
     let cancelled = false;
     const checkHealth = async () => {
       try {
-        const { getHealth } = await import("./services/api");
-        const h = await getHealth();
-        if (!cancelled) setConnectionStatus(h.status ? "connected" : "disconnected");
+        const resp = await fetch("/health");
+        if (!resp.ok) throw new Error("not ok");
+        const data = await resp.json();
+        if (!cancelled) setConnectionStatus(data.status ? "connected" : "disconnected");
       } catch {
         if (!cancelled) setConnectionStatus("disconnected");
       }
@@ -128,7 +147,13 @@ export default function App() {
 
   const runAnalyze = useCallback(async () => {
     if (phaseMode === 0) return;
+    if (!camera.isReady) {
+      setError("Camera is not ready. Please wait.");
+      setStatusMsg("BLOCKED: camera not ready");
+      return;
+    }
     setError(null);
+    setStatusMsg("Sending to server...");
     try {
       const w = camera.videoRef.current?.videoWidth ?? 0;
       const h = camera.videoRef.current?.videoHeight ?? 0;
@@ -139,18 +164,21 @@ export default function App() {
         frameSize: w > 0 && h > 0 ? { width: w, height: h } : undefined,
         client: { platform: "web" },
       });
-      overlay.hydrateFromResponse(response);
+      hydrateFromResponse(response);
+      setLastResponse(response);
+      setStatusMsg(`SUCCESS: ${response.overlays.length} overlay(s) returned`);
     } catch (analyzeError) {
       if (analyzeError instanceof ApiClientError && analyzeError.code === "RATE_LIMITED") {
+        setStatusMsg("Rate limited, try again");
         return;
       }
-      setError(
-        analyzeError instanceof ApiClientError
-          ? analyzeError.message
-          : (analyzeError as Error).message,
-      );
+      const msg = analyzeError instanceof ApiClientError
+        ? analyzeError.message
+        : (analyzeError as Error).message;
+      setError(msg);
+      setStatusMsg(`ERROR: ${msg}`);
     }
-  }, [phaseMode, camera.videoRef, snapshot, overlay]);
+  }, [phaseMode, camera.isReady, camera.videoRef, snapshot.runAnalysis, hydrateFromResponse]);
 
   const autoScan = useAutoScan({
     intervalMs: 2500,
@@ -159,21 +187,32 @@ export default function App() {
   });
 
   const handleCaptureClick = async () => {
-    if (phaseMode >= 2 && !audio.isRecording) {
-      await audio.startRecording();
-      setTimeout(async () => {
-        await runAnalyze();
-      }, 500);
-    } else {
-      await runAnalyze();
-    }
+    setStatusMsg("Button clicked, calling runAnalyze...");
+    await runAnalyze();
+  };
+
+  const recordingStarted = useRef(false);
+
+  const handleRecordStart = async () => {
+    if (audio.isRecording || recordingStarted.current) return;
+    recordingStarted.current = true;
+    setError(null);
+    setStatusMsg("Recording started...");
+    await audio.startRecording();
+  };
+
+  const handleRecordStop = async () => {
+    if (!recordingStarted.current) return;
+    recordingStarted.current = false;
+    setStatusMsg("Recording stopped, analyzing...");
+    await runAnalyze();
   };
 
   return (
-    <main style={styles.app}>
+    <div style={{ minHeight: "100vh", background: "#030712", color: "#f9fafb", padding: "1rem", fontFamily: "Inter, system-ui, sans-serif" }}>
       <header style={styles.header}>
         <h1 style={styles.title}>
-          <span style={styles.titleIcon}>◉</span> AURA
+          <span style={styles.titleIcon}>&#9673;</span> AURA
         </h1>
         <div style={styles.headerRight}>
           <label htmlFor="phase-select" style={styles.label}>
@@ -187,7 +226,7 @@ export default function App() {
           >
             {PHASES.map((phase) => (
               <option key={phase} value={phase}>
-                {phase} — {phaseLabels[phase]}
+                {phase} &mdash; {phaseLabels[phase]}
               </option>
             ))}
           </select>
@@ -204,6 +243,28 @@ export default function App() {
             >
               {autoScan.isAutoScanning ? `Stop Scan (${autoScan.scanCount})` : "Start Auto-Scan"}
             </button>
+          ) : phaseMode >= 2 ? (
+            <button
+              onPointerDown={() => void handleRecordStart()}
+              onPointerUp={() => void handleRecordStop()}
+              onPointerLeave={() => void handleRecordStop()}
+              disabled={snapshot.isLoading || !camera.isReady}
+              style={{
+                ...styles.button,
+                opacity: snapshot.isLoading ? 0.5 : 1,
+                background: audio.isRecording ? "#dc2626" : "#1d4ed8",
+                borderColor: audio.isRecording ? "#dc2626" : "#2563eb",
+                userSelect: "none",
+                touchAction: "none",
+              }}
+              type="button"
+            >
+              {snapshot.isLoading
+                ? "Analyzing..."
+                : audio.isRecording
+                  ? "Recording... Release to Analyze"
+                  : "Hold to Speak + Capture"}
+            </button>
           ) : (
             <button
               onClick={() => void handleCaptureClick()}
@@ -214,11 +275,7 @@ export default function App() {
               }}
               type="button"
             >
-              {snapshot.isLoading
-                ? "Analyzing..."
-                : phaseMode >= 2
-                  ? "Hold to Speak + Capture"
-                  : "Capture + Analyze"}
+              {snapshot.isLoading ? "Analyzing..." : "Capture + Analyze"}
             </button>
           )}
 
@@ -229,7 +286,7 @@ export default function App() {
               type="button"
               title="Switch camera"
             >
-              ⟲
+              &#10226;
             </button>
           )}
         </div>
@@ -248,7 +305,7 @@ export default function App() {
         ) : (
           <video ref={camera.videoRef} style={styles.video} muted playsInline />
         )}
-        <OverlayCanvas overlays={overlay.overlays} />
+        <OverlayCanvas overlays={overlays} />
         {(snapshot.isLoading || autoScan.isAutoScanning) && (
           <ScanAnimation isScanning={true} />
         )}
@@ -260,11 +317,18 @@ export default function App() {
         )}
       </section>
 
-      <StatusBar
-        serverStatus={connectionStatus}
-        modelWarm={connectionStatus === "connected"}
-        currentPhase={phaseMode}
-      />
+      {/* Status message - always visible */}
+      <div style={{
+        padding: "0.5rem 0.75rem",
+        background: statusMsg.startsWith("ERROR") ? "#7f1d1d" : statusMsg.startsWith("SUCCESS") ? "#064e3b" : "#1e293b",
+        borderRadius: "0.4rem",
+        fontSize: "0.85rem",
+        minHeight: "1.5rem",
+        fontFamily: "monospace",
+        color: statusMsg.startsWith("ERROR") ? "#fca5a5" : statusMsg.startsWith("SUCCESS") ? "#6ee7b7" : "#94a3b8",
+      }}>
+        {statusMsg || `Ready | Phase ${phaseMode} | Camera: ${camera.isReady ? "ready" : "not ready"} | Server: ${connectionStatus}`}
+      </div>
 
       {(error || camera.error || autoScan.lastError) && (
         <div style={styles.errorBar}>
@@ -274,36 +338,49 @@ export default function App() {
         </div>
       )}
 
+      {lastResponse && lastResponse.overlays.length > 0 && (
+        <div style={styles.resultsPanel}>
+          <strong>Analysis Results ({lastResponse.overlays.length} overlay{lastResponse.overlays.length !== 1 ? "s" : ""}):</strong>
+          {lastResponse.overlays.map((o, i) => (
+            <div key={i} style={styles.resultItem}>
+              <span style={styles.resultLabel}>{o.label}</span>
+              <span style={styles.resultConf}>{(o.confidence * 100).toFixed(0)}%</span>
+              <span style={styles.resultType}>{o.overlay_type}</span>
+              <span style={styles.resultBbox}>
+                ({o.bbox.x.toFixed(2)}, {o.bbox.y.toFixed(2)}) {o.bbox.width.toFixed(2)}x{o.bbox.height.toFixed(2)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <StatusBar
+        serverStatus={connectionStatus}
+        modelWarm={connectionStatus === "connected"}
+        currentPhase={phaseMode}
+      />
+
       <footer style={styles.statusInfo}>
         <span>Mode: {modeName}</span>
         <span>Camera: {camera.isReady || phaseMode === 0 ? "ready" : "not ready"} ({camera.facing})</span>
-        <span>Overlays: {overlay.overlays.length}</span>
+        <span>Overlays: {overlays.length}</span>
         {phaseMode === 3 && (
           <span>Scans: {autoScan.scanCount} | {autoScan.isAutoScanning ? "running" : "stopped"}</span>
         )}
         {snapshot.error && <span style={styles.errorText}>API: {snapshot.error}</span>}
       </footer>
-    </main>
+    </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  app: {
-    minHeight: "100vh",
-    display: "grid",
-    gridTemplateRows: "auto 1fr auto auto auto",
-    gap: "0.5rem",
-    background: "#030712",
-    color: "#f9fafb",
-    padding: "1rem",
-    fontFamily: "Inter, system-ui, sans-serif",
-  },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
     gap: "0.75rem",
+    marginBottom: "0.5rem",
   },
   title: {
     fontSize: "1.25rem",
@@ -356,7 +433,7 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     width: "100%",
     maxWidth: "960px",
-    margin: "0 auto",
+    margin: "0.5rem auto",
     aspectRatio: "16 / 9",
     borderRadius: "0.75rem",
     overflow: "hidden",
@@ -395,11 +472,12 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexWrap: "wrap",
     gap: "1rem",
-    fontSize: "0.8rem",
+    fontSize: "0.85rem",
     color: "#fca5a5",
-    padding: "0.5rem",
-    background: "rgba(127, 29, 29, 0.3)",
+    padding: "0.6rem 0.8rem",
+    background: "rgba(127, 29, 29, 0.4)",
     borderRadius: "0.5rem",
+    marginTop: "0.25rem",
   },
   statusInfo: {
     display: "flex",
@@ -409,9 +487,48 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.8rem",
     borderTop: "1px solid #1f2937",
     paddingTop: "0.5rem",
+    marginTop: "0.5rem",
     opacity: 0.7,
   },
   errorText: {
     color: "#fca5a5",
+  },
+  resultsPanel: {
+    padding: "0.75rem 1rem",
+    background: "rgba(16, 185, 129, 0.15)",
+    border: "2px solid #10b981",
+    borderRadius: "0.5rem",
+    fontSize: "0.9rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.4rem",
+    marginTop: "0.25rem",
+  },
+  resultItem: {
+    display: "flex",
+    gap: "0.75rem",
+    alignItems: "center",
+    paddingLeft: "0.5rem",
+  },
+  resultLabel: {
+    color: "#6ee7b7",
+    fontWeight: 600,
+    fontSize: "1rem",
+  },
+  resultConf: {
+    color: "#a7f3d0",
+    fontSize: "0.85rem",
+  },
+  resultType: {
+    color: "#86efac",
+    fontSize: "0.75rem",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    opacity: 0.7,
+  },
+  resultBbox: {
+    color: "#6b7280",
+    fontSize: "0.75rem",
+    fontFamily: "monospace",
   },
 };
