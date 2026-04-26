@@ -1,0 +1,14 @@
+{
+  "input_image": "video-simulation/assets/math-equations/magic-equation-correction-source.png",
+  "editable_steps": [
+    "6x + 20 + 4(2x) = 48",
+    "6x + 20 + 8x = 48",
+    "14x + 20 = 48",
+    "14x = 28",
+    "x = 2"
+  ],
+  "metadata": {
+    "source": "manual-curation",
+    "intent": "magical-equation-correction-sequence"
+  }
+}
