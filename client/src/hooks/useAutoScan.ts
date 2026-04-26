@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface UseAutoScanOptions {
   intervalMs?: number;
@@ -23,6 +23,9 @@ export function useAutoScan(options: UseAutoScanOptions): UseAutoScanReturn {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scanningRef = useRef(false);
 
+  const onScanRef = useRef(onScan);
+  useEffect(() => { onScanRef.current = onScan; }, [onScan]);
+
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
       clearInterval(timerRef.current);
@@ -36,7 +39,7 @@ export function useAutoScan(options: UseAutoScanOptions): UseAutoScanReturn {
     setLastError(null);
 
     try {
-      await onScan();
+      await onScanRef.current();
       setScanCount((c) => c + 1);
       setLastScanTs(Date.now());
     } catch (err) {
@@ -45,7 +48,7 @@ export function useAutoScan(options: UseAutoScanOptions): UseAutoScanReturn {
     } finally {
       scanningRef.current = false;
     }
-  }, [onScan]);
+  }, []);
 
   const toggleAutoScan = useCallback(() => {
     setIsAutoScanning((prev) => !prev);
@@ -69,5 +72,7 @@ export function useAutoScan(options: UseAutoScanOptions): UseAutoScanReturn {
     return clearTimer;
   }, [isAutoScanning, enabled, intervalMs, runScan, clearTimer]);
 
-  return { isAutoScanning, toggleAutoScan, scanCount, lastScanTs, lastError };
+  return useMemo(() => ({
+    isAutoScanning, toggleAutoScan, scanCount, lastScanTs, lastError,
+  }), [isAutoScanning, toggleAutoScan, scanCount, lastScanTs, lastError]);
 }

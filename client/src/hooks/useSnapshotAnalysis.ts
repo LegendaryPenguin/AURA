@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ApiClientError, postAnalyze } from "../services/api";
 import type {
@@ -64,6 +64,12 @@ export function useSnapshotAnalysis(
   const [errorCode, setErrorCode] = useState<ApiClientError["code"] | null>(null);
   const activeRequestIdRef = useRef<string | null>(null);
 
+  const captureFrameRef = useRef(dependencies.captureFrame);
+  const recordAudioRef = useRef(dependencies.recordAudio);
+
+  useEffect(() => { captureFrameRef.current = dependencies.captureFrame; }, [dependencies.captureFrame]);
+  useEffect(() => { recordAudioRef.current = dependencies.recordAudio; }, [dependencies.recordAudio]);
+
   const reset = useCallback(() => {
     activeRequestIdRef.current = null;
     setStatus("idle");
@@ -81,9 +87,9 @@ export function useSnapshotAnalysis(
       setErrorCode(null);
 
       try {
-        const imageBase64 = await Promise.resolve(dependencies.captureFrame());
-        const audio = dependencies.recordAudio
-          ? await dependencies.recordAudio()
+        const imageBase64 = await Promise.resolve(captureFrameRef.current());
+        const audio = recordAudioRef.current
+          ? await recordAudioRef.current()
           : undefined;
 
         const requestPayload = buildRequest(
@@ -121,7 +127,7 @@ export function useSnapshotAnalysis(
         throw normalizedError;
       }
     },
-    [dependencies],
+    [],
   );
 
   const value = useMemo<UseSnapshotAnalysisReturn>(

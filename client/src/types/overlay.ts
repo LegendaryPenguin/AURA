@@ -4,19 +4,20 @@ import type {
   BBox,
   Overlay,
   OverlayResponse as SharedOverlayResponse,
+  OverlayType,
+  UiLayer,
 } from "../../../shared/schemas/types";
 
 export type AnalysisRequest = SharedAnalysisRequest;
 export type OverlayResponse = SharedOverlayResponse;
 export type OverlayItem = Overlay;
 export type BoundingBox = BBox;
+export type { OverlayType, UiLayer };
 export type SupportedAudioFormat = AudioFormat;
 
 export interface HealthResponse {
   status: string;
-  model_status?: string;
-  version?: string;
-  details?: Record<string, unknown>;
+  models?: Record<string, unknown>;
 }
 
 export interface SnapshotAudioPayload {

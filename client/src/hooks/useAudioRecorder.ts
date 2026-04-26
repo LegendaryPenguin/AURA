@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { SnapshotAudioPayload } from "../types/overlay";
 
 export interface UseAudioRecorderReturn {
@@ -96,5 +96,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     return stopRecording;
   }, [startRecording, stopRecording]);
 
-  return { isRecording, startRecording, stopRecording, holdToRecord, error };
+  return useMemo(() => ({
+    isRecording, startRecording, stopRecording, holdToRecord, error,
+  }), [isRecording, startRecording, stopRecording, holdToRecord, error]);
 }

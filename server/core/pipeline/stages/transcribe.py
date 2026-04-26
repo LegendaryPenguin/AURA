@@ -34,6 +34,14 @@ class TranscribeStage(PipelineStage):
             context.query = context.query or self._default_query
             return context
 
+        if self._whisper is None or not self._whisper.is_ready():
+            _log.warning("Audio provided but Whisper is not available; using default query")
+            context.query = context.query or self._default_query
+            response.setdefault("warnings", []).append(
+                "Audio was provided but Whisper is not available. Using default text query."
+            )
+            return context
+
         from server.utils.image_utils import decode_base64
 
         audio_bytes = decode_base64(audio_b64)

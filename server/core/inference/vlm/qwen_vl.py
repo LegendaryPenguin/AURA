@@ -151,20 +151,23 @@ def _extract_json_object(raw_content: Any) -> dict[str, Any]:
     except json.JSONDecodeError:
         pass
 
-    list_match = re.search(r"\[.*\]", candidate, flags=re.DOTALL)
-    if list_match:
-        parsed_list = json.loads(list_match.group(0))
-        if isinstance(parsed_list, list):
-            return {"overlays": parsed_list}
+    # VLMs sometimes emit valid JSON followed by extra text or multiple objects.
+    # Use the JSONDecoder to consume only the first valid token.
+    decoder = json.JSONDecoder()
+    for start_char in ("{", "["):
+        idx = candidate.find(start_char)
+        if idx == -1:
+            continue
+        try:
+            obj, _ = decoder.raw_decode(candidate, idx)
+            if isinstance(obj, dict):
+                return obj
+            if isinstance(obj, list):
+                return {"overlays": obj}
+        except json.JSONDecodeError:
+            continue
 
-    match = re.search(r"\{.*\}", candidate, flags=re.DOTALL)
-    if not match:
-        raise ValueError("Model response did not include a JSON object")
-
-    parsed = json.loads(match.group(0))
-    if not isinstance(parsed, dict):
-        raise ValueError("Model JSON payload must be an object")
-    return parsed
+    raise ValueError("Model response did not include a valid JSON object")
 
 
 VLM_MIN_DIM = int(os.getenv("AURA_VLM_MIN_DIM", "256"))

@@ -38,6 +38,7 @@ Keep legacy task `Status` for compatibility, but all tasks and phases must also 
 - `DemoReady`
 
 Rules:
+
 - Promotion is monotonic (no skipping levels).
 - Regression after promotion requires immediate rollback by at least one maturity level.
 - A task marked `Status: Done` can still be below `Maturity: Verified` during migration.
@@ -139,33 +140,33 @@ A phase cannot be marked complete unless:
 ## Agent Tasks — Quick Reference
 
 
-| Task  | Workstream | Summary                       | Files | Phase       | Status      |
-| ----- | ---------- | ----------------------------- | ----- | ----------- | ----------- |
-| WS1-A | Foundation | Schemas & TypeScript types    | 5     | Sprint 0    | Done        |
-| WS1-B | Foundation | Abstract interfaces           | 3     | Sprint 0    | Done        |
-| WS1-C | Foundation | Config & environment          | 6     | Sprint 0    | Done        |
-| WS1-D | Foundation | Scripts & mock server         | 10    | Sprint 0    | Done        |
-| WS1-E | Foundation | Utilities & test fixtures     | 8+    | Sprint 0    | Done        |
-| WS2-A | Client     | Camera subsystem              | 4     | Phase 2     | Todo        |
-| WS2-B | Client     | Audio subsystem               | 1     | Phase 2     | Todo        |
-| WS2-C | Client     | Frame capture & coords        | 3     | Phase 1     | Done        |
-| WS2-D | Client     | Overlay rendering             | 6     | Phase 1     | Done        |
-| WS2-E | Client     | UI chrome & fallback          | 8     | Phase 0     | Done        |
-| WS2-F | Client     | REST networking               | 3     | Phase 1     | Done        |
-| WS2-G | Client     | WebSocket networking          | 3     | Phase 4     | Todo        |
-| WS2-H | Client     | App shell & integration (depends: WS2-C/D/F) | 6     | Integration | Done        |
-| WS3-A | Server API | FastAPI scaffold & middleware | 4     | Phase 1     | Done        |
-| WS3-B | Server API | REST routes                   | 4     | Phase 1     | Done        |
-| WS3-C | Server API | WebSocket route               | 2     | Phase 4     | Todo        |
-| WS3-D | Server API | Snapshot pipeline & stages    | 7     | Phase 1     | Done        |
-| WS3-E | Server API | Streaming pipeline            | 3     | Phase 4     | Todo        |
-| WS3-F | Server API | Validation                    | 3     | Phase 1     | Done        |
-| WS4-A | Inference  | VLM backend + 20-image benchmark harness | 6     | Phase 1     | Done        |
-| WS4-B | Inference  | Audio backend                 | 3     | Phase 2     | Todo        |
-| WS4-C | Inference  | Segmentation backend          | 4     | Phase 2     | Todo        |
-| WS4-D | Inference  | Depth backend                 | 4     | Phase 5     | Todo        |
-| WS4-E | Inference  | Tracking system               | 4     | Phase 4     | Todo        |
-| WS4-F | Inference  | Generation & agents           | 6     | Stretch     | Todo        |
+| Task  | Workstream | Summary                                      | Files | Phase       | Status |
+| ----- | ---------- | -------------------------------------------- | ----- | ----------- | ------ |
+| WS1-A | Foundation | Schemas & TypeScript types                   | 5     | Sprint 0    | Done   |
+| WS1-B | Foundation | Abstract interfaces                          | 3     | Sprint 0    | Done   |
+| WS1-C | Foundation | Config & environment                         | 6     | Sprint 0    | Done   |
+| WS1-D | Foundation | Scripts & mock server                        | 10    | Sprint 0    | Done   |
+| WS1-E | Foundation | Utilities & test fixtures                    | 8+    | Sprint 0    | Done   |
+| WS2-A | Client     | Camera subsystem                             | 4     | Phase 2     | Todo   |
+| WS2-B | Client     | Audio subsystem                              | 1     | Phase 2     | Todo   |
+| WS2-C | Client     | Frame capture & coords                       | 3     | Phase 1     | Done   |
+| WS2-D | Client     | Overlay rendering                            | 6     | Phase 1     | Done   |
+| WS2-E | Client     | UI chrome & fallback                         | 8     | Phase 0     | Done   |
+| WS2-F | Client     | REST networking                              | 3     | Phase 1     | Done   |
+| WS2-G | Client     | WebSocket networking                         | 3     | Phase 4     | Todo   |
+| WS2-H | Client     | App shell & integration (depends: WS2-C/D/F) | 6     | Integration | Done   |
+| WS3-A | Server API | FastAPI scaffold & middleware                | 4     | Phase 1     | Done   |
+| WS3-B | Server API | REST routes                                  | 4     | Phase 1     | Done   |
+| WS3-C | Server API | WebSocket route                              | 2     | Phase 4     | Todo   |
+| WS3-D | Server API | Snapshot pipeline & stages                   | 7     | Phase 1     | Done   |
+| WS3-E | Server API | Streaming pipeline                           | 3     | Phase 4     | Todo   |
+| WS3-F | Server API | Validation                                   | 3     | Phase 1     | Done   |
+| WS4-A | Inference  | VLM backend + 20-image benchmark harness     | 6     | Phase 1     | Done   |
+| WS4-B | Inference  | Audio backend                                | 3     | Phase 2     | Todo   |
+| WS4-C | Inference  | Segmentation backend                         | 4     | Phase 2     | Todo   |
+| WS4-D | Inference  | Depth backend                                | 4     | Phase 5     | Todo   |
+| WS4-E | Inference  | Tracking system                              | 4     | Phase 4     | Todo   |
+| WS4-F | Inference  | Generation & agents                          | 6     | Stretch     | Todo   |
 
 
 ---
@@ -220,9 +221,7 @@ Individual task definitions with scope, verification, and ownership: `docs/plann
 ## Retrospective — why Phase 1 had integration blockers
 
 1. **Isolated “Done” without a consumer:** WS3-B, WS3-D, and client networking were each verified with mocks, but no single test walked the same JSON payload from `shared/schemas/analysis_request.json` through `POST /analyze` into the snapshot pipeline. That allowed field-name drift between route handlers and `PipelineContext` until caught.
-
 2. **Composition root (WS3-A) was underspecified in verification:** `server/main.py` must mount routes *and* attach `app.state.snapshot_pipeline` for anything to render beyond empty fallbacks; early checklists did not require an OpenAPI or TestClient check for `/analyze` on the real `create_app()`.
-
 3. **App shell vs. feature hooks:** the shell shipped before the REST hook layer was the single path to the API; the roadmap now ties WS2-H to WS2-C/D/F explicitly.
-
 4. **Resolution in repo:** add `tests/integration/test_phase1_e2e.py` as the Phase 1 **integration gate**, extend `scripts/dev/run_tests.sh` to run `tests/integration/`, and keep rules 7–8 (HTTP contract + `PipelineContext` field contract) as standing guardrails.
+

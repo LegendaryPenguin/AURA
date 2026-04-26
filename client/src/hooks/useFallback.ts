@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 export type OverlayType = 'diagnostic' | 'hazard' | 'info' | 'reference';
 
@@ -86,7 +86,9 @@ export function useFallback(): UseFallbackReturn {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [triggerFallback]);
 
-  return { fallbackData, isFallbackActive, triggerFallback, clearFallback };
+  return useMemo(() => ({
+    fallbackData, isFallbackActive, triggerFallback, clearFallback,
+  }), [fallbackData, isFallbackActive, triggerFallback, clearFallback]);
 }
 
 export { FALLBACK_PAYLOAD };

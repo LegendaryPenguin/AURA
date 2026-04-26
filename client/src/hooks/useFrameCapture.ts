@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 export interface CaptureResult {
   dataUrl: string;
@@ -56,5 +56,5 @@ export function useFrameCapture(): FrameCaptureHook {
     };
   }, []);
 
-  return { captureFrame };
+  return useMemo(() => ({ captureFrame }), [captureFrame]);
 }
