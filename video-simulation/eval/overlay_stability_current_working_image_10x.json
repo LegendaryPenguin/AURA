@@ -1,0 +1,520 @@
+{
+  "iterations": 10,
+  "ok_runs": 10,
+  "failed_runs": 0,
+  "qa_pass_rate": 1.0,
+  "mean_source_bbox_drift_px": 0.0,
+  "max_source_bbox_drift_px": 0.0,
+  "rows": [
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201226",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201226.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201226_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201226_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201226_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201226.gif"
+      },
+      "iteration": 1
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201228",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201228.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201228_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201228_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201228_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201228.gif"
+      },
+      "iteration": 2
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201231",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201231.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201231_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201231_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201231_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201231.gif"
+      },
+      "iteration": 3
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201233",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201233.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201233_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201233_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201233_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201233.gif"
+      },
+      "iteration": 4
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201236",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201236.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201236_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201236_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201236_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201236.gif"
+      },
+      "iteration": 5
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201238",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201238.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201238_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201238_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201238_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201238.gif"
+      },
+      "iteration": 6
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201241",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201241.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201241_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201241_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201241_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201241.gif"
+      },
+      "iteration": 7
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201243",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201243.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201243_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201243_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201243_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201243.gif"
+      },
+      "iteration": 8
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201246",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201246.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201246_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201246_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201246_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201246.gif"
+      },
+      "iteration": 9
+    },
+    {
+      "ok": true,
+      "stage_dir": "/home/asus/Documents/AURA/video-simulation/outputs/stages/20260425_201248",
+      "video_file": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201248.gif",
+      "qa_report": {
+        "passed": true,
+        "checks": {
+          "anchor_count_matches_steps": true,
+          "anchors_inside_frame": true,
+          "anchor_confidence_min": true,
+          "non_overlapping_majority": true,
+          "anchors_vertically_ordered": true,
+          "popup_only_on_errors": true,
+          "full_line_coverage": true,
+          "patch_tone_match": true,
+          "line_overlap_artifact_risk": true,
+          "smooth_timing_profile": true,
+          "content_occupancy_ratio": true,
+          "roi_confident": true,
+          "roi_bbox_valid": true,
+          "equation_near_center": true,
+          "proof_frames_written": true
+        },
+        "used_fallback_anchor": false,
+        "stabilized_anchors": false,
+        "transform_meta": {
+          "source_bbox": [
+            28,
+            28,
+            380,
+            238
+          ],
+          "scale": 3.238095,
+          "offset": [
+            70,
+            20
+          ],
+          "roi_method": "luminance",
+          "roi_confident": true
+        },
+        "proof_frame_paths": [
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201248_proof_frames/start.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201248_proof_frames/mid.png",
+          "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201248_proof_frames/end.png"
+        ],
+        "mp4_writer_ok": false,
+        "mp4_writer": "ffmpeg_timed",
+        "mp4_fallback": "/home/asus/Documents/AURA/video-simulation/outputs/tutorial_animation_20260425_201248.gif"
+      },
+      "iteration": 10
+    }
+  ]
+}

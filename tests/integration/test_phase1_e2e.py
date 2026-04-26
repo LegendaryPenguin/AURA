@@ -43,6 +43,13 @@ class _MockSnapshotPipeline:
         return context
 
 
+class _TimeoutSnapshotPipeline:
+    def run(self, context: PipelineContext, session_id: str = "") -> PipelineContext:  # noqa: ARG002
+        from server.core.pipeline.snapshot_pipeline import PipelineTimeoutError
+
+        raise PipelineTimeoutError("phase1 timeout test")
+
+
 def test_phase1_post_analyze_end_to_end_schema_shape() -> None:
     app = create_app()
     with TestClient(app) as client:
@@ -65,6 +72,54 @@ def test_phase1_post_analyze_end_to_end_schema_shape() -> None:
     assert "created_at" in data
     assert isinstance(data.get("overlays"), list)
     assert data["overlays"][0]["label"] == "phase1-e2e"
+
+
+def test_phase1_post_analyze_rejects_missing_required_fields() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        app.state.snapshot_pipeline = _MockSnapshotPipeline()
+        res = client.post(
+            "/analyze",
+            json={
+                "image_base64": _valid_jpeg_b64(),
+                "query": "What is this?",
+            },
+        )
+    assert res.status_code == 422
+    body = res.json()
+    assert body["code"] == 422
+    assert "missing required fields" in body["error"]
+
+
+def test_phase1_post_analyze_rejects_non_object_payload() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        app.state.snapshot_pipeline = _MockSnapshotPipeline()
+        res = client.post("/analyze", json=["not", "an", "object"])
+    assert res.status_code == 422
+    body = res.json()
+    assert body["code"] == 422
+    assert "must be an object" in body["error"]
+
+
+def test_phase1_post_analyze_maps_pipeline_timeout_to_408() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        app.state.snapshot_pipeline = _TimeoutSnapshotPipeline()
+        res = client.post(
+            "/analyze",
+            json={
+                "image_base64": _valid_jpeg_b64(),
+                "query": "What is this?",
+                "request_id": "e2e-timeout-req",
+                "session_id": "e2e-timeout-sess",
+                "capture_ts_ms": 1_700_000_000_000,
+            },
+        )
+    assert res.status_code == 408
+    body = res.json()
+    assert body["code"] == 408
+    assert body["stage"] == "pipeline"
 
 
 def test_phase1_analyze_when_pipeline_unconfigured_returns_fallback_shape() -> None:

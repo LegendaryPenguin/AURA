@@ -64,6 +64,25 @@ def _sympy_equivalent(a: str, b: str) -> tuple[bool | None, str]:
         return None, f"sympy_parse_error: {exc}"
 
 
+def _propose_correction(src: str, dst: str) -> tuple[str | None, str | None]:
+    src_s = src.replace(" ", "")
+    dst_s = dst.replace(" ", "")
+    # Fix the common distribution error a(bx) -> kx where k != a*b.
+    m = re.search(r"(\d+)\((\d+)x\)", src_s)
+    if not m:
+        return None, None
+    target = int(m.group(1)) * int(m.group(2))
+    kx_terms = re.findall(r"\d+x", dst_s)
+    if not kx_terms:
+        return None, None
+    candidate = max(kx_terms, key=lambda t: int(t[:-1]))
+    if int(candidate[:-1]) == target:
+        return None, None
+    corrected = dst_s.replace(candidate, f"{target}x", 1)
+    explanation = f"{m.group(1)}*({m.group(2)}x) = {target}x, so {candidate} should be {target}x."
+    return corrected, explanation
+
+
 def final_substitution_check(step: str) -> dict[str, Any]:
     p = parse_equation(step)
     if not p.parse_valid:
@@ -104,6 +123,7 @@ def final_substitution_check(step: str) -> dict[str, Any]:
 def run_stage(normalized: dict[str, Any]) -> dict[str, Any]:
     steps = [str(s) for s in normalized.get("normalized_steps", []) if str(s).strip()]
     transitions: list[dict[str, Any]] = []
+    corrected_steps = list(steps)
     any_inconsistent = False
     any_unknown = False
 
@@ -113,14 +133,21 @@ def run_stage(normalized: dict[str, Any]) -> dict[str, Any]:
         equivalent, reason = _sympy_equivalent(src, dst)
         if equivalent is True:
             status = "equivalent"
+            correction_target = None
+            correction_explanation = None
         elif equivalent is False:
             status = "inconsistent"
             any_inconsistent = True
             if reason == "ok":
                 reason = "non_equivalent_solution_set"
+            correction_target, correction_explanation = _propose_correction(src, dst)
+            if correction_target:
+                corrected_steps[idx + 1] = correction_target
         else:
             status = "unknown"
             any_unknown = True
+            correction_target = None
+            correction_explanation = None
         transitions.append(
             {
                 "from_index": idx,
@@ -130,6 +157,8 @@ def run_stage(normalized: dict[str, Any]) -> dict[str, Any]:
                 "status": status,
                 "reason": reason,
                 "token_diff": _diff_tokens(src, dst),
+                "correction_target": correction_target,
+                "correction_explanation": correction_explanation,
             }
         )
 
@@ -154,4 +183,5 @@ def run_stage(normalized: dict[str, Any]) -> dict[str, Any]:
         "verification_status": verification_status,
         "is_verified": verification_status == "verified",
         "uncertainty_reasons": uncertainty_reasons,
+        "corrected_steps": corrected_steps,
     }

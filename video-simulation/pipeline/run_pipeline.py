@@ -267,6 +267,7 @@ def main() -> None:
 
     story = {
         "display_steps": narrated["display_steps"],
+        "corrected_steps": narrated.get("corrected_steps", narrated["display_steps"]),
         "explanation_steps": narrated["explanation_steps"],
         "final_check": verified["final_check"],
         "render_quality_grade": narrated["render_quality_grade"],
