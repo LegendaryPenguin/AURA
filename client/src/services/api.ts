@@ -33,6 +33,9 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const isNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 const isString = (value: unknown): value is string => typeof value === "string";
 const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
+const OVERLAY_TYPES = new Set(["diagnostic", "hazard", "info", "reference"]);
+const UI_LAYERS = new Set(["background", "midground", "foreground", "hud"]);
+const isIsoDatetime = (value: string): boolean => !Number.isNaN(Date.parse(value));
 
 const buildUrl = (path: string): string => {
   if (!API_BASE_URL) {
@@ -84,6 +87,9 @@ const validateOverlayResponse = (value: unknown): OverlayResponse => {
   if (!isString(request_id) || !isString(session_id) || !isString(created_at) || !Array.isArray(overlays)) {
     throw new ApiClientError("Analyze response has an invalid top-level shape.", "INVALID_RESPONSE");
   }
+  if (!isIsoDatetime(created_at)) {
+    throw new ApiClientError("Analyze response created_at is not a valid datetime.", "INVALID_RESPONSE");
+  }
 
   overlays.forEach((overlay, index) => {
     if (!isObject(overlay)) {
@@ -105,6 +111,27 @@ const validateOverlayResponse = (value: unknown): OverlayResponse => {
       !isBoolean(overlay.action_required)
     ) {
       throw new ApiClientError(`Overlay at index ${index} has invalid fields.`, "INVALID_RESPONSE");
+    }
+    if (
+      bbox.x < 0 ||
+      bbox.x > 1 ||
+      bbox.y < 0 ||
+      bbox.y > 1 ||
+      bbox.width <= 0 ||
+      bbox.width > 1 ||
+      bbox.height <= 0 ||
+      bbox.height > 1
+    ) {
+      throw new ApiClientError(`Overlay bbox at index ${index} is out of bounds.`, "INVALID_RESPONSE");
+    }
+    if (overlay.confidence < 0 || overlay.confidence > 1) {
+      throw new ApiClientError(`Overlay confidence at index ${index} is out of bounds.`, "INVALID_RESPONSE");
+    }
+    if (!UI_LAYERS.has(overlay.ui_layer)) {
+      throw new ApiClientError(`Overlay ui_layer at index ${index} is invalid.`, "INVALID_RESPONSE");
+    }
+    if (!OVERLAY_TYPES.has(overlay.overlay_type)) {
+      throw new ApiClientError(`Overlay type at index ${index} is invalid.`, "INVALID_RESPONSE");
     }
   });
 
@@ -162,7 +189,7 @@ async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
 }
 
 export async function postAnalyze(payload: AnalysisRequest): Promise<OverlayResponse> {
-  const raw = await fetchJson(buildUrl("/analyze"), {
+  const raw = await fetchJson(buildUrl("/api/analyze"), {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -170,7 +197,7 @@ export async function postAnalyze(payload: AnalysisRequest): Promise<OverlayResp
 }
 
 export async function getHealth(): Promise<HealthResponse> {
-  const raw = await fetchJson(buildUrl("/health"), {
+  const raw = await fetchJson(buildUrl("/api/health"), {
     method: "GET",
   });
   return validateHealthResponse(raw);
