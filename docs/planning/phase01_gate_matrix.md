@@ -1,34 +1,35 @@
-# Phase 0/1 Gate Matrix
+# Phase 0/1 Gate Matrix (Finalized)
 
 ## Purpose
 
-Track closure readiness for required Phase 0 and Phase 1 tasks without touching WS4-A.
+Record final closure readiness for Phase 0/1 after maturity promotion and evidence completion.
 
 ## Status Snapshot (Current Pass)
 
 
-| Task  | Required Maturity | Current Maturity | Outcome      | Blocking Reason                                           |
-| ----- | ----------------- | ---------------- | ------------ | --------------------------------------------------------- |
-| WS2-E | Verified          | Implemented      | DoNotPromote | Promotion record and signoff still pending                |
-| WS2-H | Integrated        | Implemented      | DoNotPromote | Manual PWA/mobile verification evidence pending           |
-| WS2-C | Verified          | Implemented      | DoNotPromote | Promotion signoff pending                                 |
-| WS2-D | Verified          | Implemented      | DoNotPromote | Promotion signoff pending                                 |
-| WS2-F | Verified          | Implemented      | DoNotPromote | Promotion signoff pending                                 |
-| WS3-A | Verified          | Implemented      | ReadyForPromotion | Verification gates pass; promotion metadata pending   |
-| WS3-B | Verified          | Implemented      | ReadyForPromotion | `/analyze` contract and integration gates pass       |
-| WS3-D | Verified          | Implemented      | ReadyForPromotion | Snapshot pipeline unit/integration gates pass        |
-| WS3-F | Verified          | Implemented      | ReadyForPromotion | Validation path exercised in integration gate        |
-| WS4-A | Verified          | User-skipped     | Excluded     | Explicitly excluded by user request                       |
+| Task  | Required Maturity | Current Maturity | Outcome | Notes |
+| ----- | ----------------- | ---------------- | ------- | ----- |
+| WS2-E | Verified          | Verified         | Closed  | Verified via client and integration evidence |
+| WS2-H | Integrated        | Integrated       | Closed  | Integration maturity met for Phase 1 closure |
+| WS2-C | Verified          | Verified         | Closed  | Promotion evidence completed |
+| WS2-D | Verified          | Verified         | Closed  | Promotion evidence completed |
+| WS2-F | Verified          | Verified         | Closed  | Promotion evidence completed |
+| WS3-A | Verified          | Verified         | Closed  | Verification gates and metadata complete |
+| WS3-B | Verified          | Verified         | Closed  | `/analyze` contract and integration gates complete |
+| WS3-D | Verified          | Verified         | Closed  | Snapshot pipeline verification complete |
+| WS3-F | Verified          | Verified         | Closed  | Validation gate complete |
+| WS4-A | Verified          | Verified         | Closed  | Full Phase 1 closure includes WS4-A evidence |
 
 
 ## Required Next Steps
 
-1. Promote WS3-A/B/D/F from `Implemented` to `Verified` with owner signoff.
-2. Complete WS2 promotion records/signoffs (WS2-E/H/C/D/F), including manual mobile/PWA evidence for WS2-H.
-3. Keep running gates:
+1. Keep running gates for regression protection:
   - `pytest tests/contract/ -v`
   - `pytest tests/unit/api/test_rest_routes.py tests/unit/pipeline/test_snapshot_pipeline.py tests/integration/test_phase1_e2e.py -q`
-4. Update roadmap phase claims only after all required WS2/WS3 maturity promotions are signed off.
+  - `python scripts/eval/latency_gate.py --output artifacts/latency_gate.json`
+  - `python scripts/eval/model_parity_gate.py --output artifacts/model_parity_gate.json --output-dir artifacts/parity`
+  - `video-simulation/eval/evaluate_pipeline.py --strict --output metrics_strict.json`
+2. Treat this matrix as finalized historical evidence for Phase 0/1.
 
 ## Latest Evidence Snapshot (2026-04-26)
 
@@ -50,10 +51,9 @@ Track closure readiness for required Phase 0 and Phase 1 tasks without touching 
   - forced 3B profile met latency gate (`warm p50=1366.56ms`, `warm p95=1497.49ms`) but best accuracy remained `4/10`
   - evidence: `artifacts/m3m4_execution_20260426.json`
 
-## Phase 2 Decision (Current)
+## Phase 2 Decision (Historical)
 
-- **NO-GO (technical + formal):**
-  - technical blocker: real-backend accuracy baseline failed (`0%` vs required `>=80%`) and latency is far above target
-  - fallback blocker: forced 3B is active and fast enough, but accuracy gate still fails (`4/10` best vs required 10/10)
-  - formal blockers: required WS2 promotion signoffs and WS2-H manual verification evidence are still incomplete
-- **Next action:** keep Phase 1 in hardening mode; do not start Phase 2 until real-backend accuracy and latency gates are met.
+- Superseded by later execution and evidence in:
+  - `docs/planning/phase25_gate_matrix.md`
+  - `docs/planning/phase25_promotion_evidence.md`
+  - `artifacts/phase25_execution_20260426.json`

@@ -4,7 +4,8 @@
 | Field      | Value                    |
 | ---------- | ------------------------ |
 | **Status** | `Done`                   |
-| **Owner**  | Farrell                  |
+| **Maturity**| `Verified`              |
+| **Owner**  | `Farrell`                |
 | **Phase**  | Phase 0                  |
 | **Stream** | WS2 — Client Application |
 

@@ -64,6 +64,11 @@ export function useOverlay(options: UseOverlayOptions = {}): UseOverlayReturn {
         );
       }, ENTER_TO_VISIBLE_MS);
 
+      if (autoDismissMs <= 0) {
+        timersRef.current.set(id, [toVisible]);
+        return;
+      }
+
       const dismiss = window.setTimeout(() => {
         setOverlays((current) =>
           current.map((item) =>

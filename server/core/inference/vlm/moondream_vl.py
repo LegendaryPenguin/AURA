@@ -67,6 +67,7 @@ class MoondreamVLBackend(InferenceBackend):
         benchmark_mode = os.getenv("AURA_VLM_BENCHMARK_MODE", "0") == "1"
         benchmark_heuristic = os.getenv("AURA_VLM_BENCHMARK_HEURISTIC", "1") == "1"
         benchmark_shortcircuit = os.getenv("AURA_VLM_BENCHMARK_SHORTCIRCUIT", "1") == "1"
+        strict_eval = os.getenv("AURA_VLM_STRICT_EVAL", "0") == "1"
 
         # Keep benchmark path deterministic and independent from model startup latency.
         if benchmark_mode and benchmark_heuristic and benchmark_shortcircuit:
@@ -116,6 +117,9 @@ class MoondreamVLBackend(InferenceBackend):
                     "action_required": False,
                 }
             )
+
+        if strict_eval and not overlays:
+            raise RuntimeError("strict_eval_empty_overlay")
 
         return {
             "request_id": "moondream-request",

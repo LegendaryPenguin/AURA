@@ -4,10 +4,13 @@ from typing import Any
 
 from shared.interfaces.inference_base import InferenceBackend
 from server.core.pipeline.snapshot_pipeline import SnapshotPipeline
+from server.core.pipeline.streaming_pipeline import build_streaming_pipeline
 from server.core.pipeline.stages.preprocess import PreprocessStage
 from server.core.pipeline.stages.transcribe import TranscribeStage
 from server.core.pipeline.stages.analyze import AnalyzeStage
 from server.core.pipeline.stages.postprocess import PostprocessStage
+from server.core.pipeline.stages.segment import SegmentStage
+from server.core.pipeline.stages.depth import DepthStage
 
 
 def build_snapshot_pipeline(
@@ -43,6 +46,16 @@ def get_pipeline(
     if phase <= 3:
         return build_snapshot_pipeline(backend, config)
 
-    raise NotImplementedError(
-        f"Streaming pipeline for phase {phase} is not yet implemented (see WS3-E)"
-    )
+    semantic_stages = [
+        PreprocessStage(config),
+        TranscribeStage(backend, config),
+        AnalyzeStage(backend, config),
+        SegmentStage(backend, config),
+        PostprocessStage(config),
+    ]
+    tracking_stages = [
+        SegmentStage(backend, config),
+        DepthStage(backend, config),
+        PostprocessStage(config),
+    ]
+    return build_streaming_pipeline(semantic_stages, tracking_stages, config)  # type: ignore[return-value]

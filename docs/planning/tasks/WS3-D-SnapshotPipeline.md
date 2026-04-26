@@ -3,6 +3,7 @@
 | Field       | Value                         |
 | ----------- | ----------------------------- |
 | **Status**  | `Done`                        |
+| **Maturity**| `Verified`                    |
 | **Owner**   | `Farrell`                     |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |

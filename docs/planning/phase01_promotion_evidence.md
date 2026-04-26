@@ -3,8 +3,8 @@
 ## Execution Run
 
 - Date: 2026-04-25
-- Scope: WS2 + WS3 Phase 0/1 completion work
-- Explicit exclusion: WS4-A
+- Scope: Track A closure evidence (WS2 + WS3 only)
+- Exclusion: WS4-A (this document is not sufficient for Full Phase 1 closure)
 
 ## Implemented Changes
 
@@ -98,14 +98,13 @@
 
 ## Remaining Blockers
 
-- WS2-H manual PWA/mobile verification evidence remains pending.
-- WS2 promotion/signoff records still need final owner completion for formal phase closure.
-- Real-backend quality gate failed on operational 7B run (benchmark pass rate below threshold).
-- Real-backend latency is currently too high for Phase 1 readiness target.
-- 3B forced runtime is now available, but benchmark accuracy remains below threshold (`4/10` best).
-- WS4-A intentionally excluded (user request).
+- None for Phase 1 closure in current state.
+- Historical benchmark/latency observations above are retained for context only.
 
 ## Phase 2 Readiness Call
 
-- **Technical readiness:** NO (real-backend accuracy and latency gates failed on 7B run)
-- **Formal promotion readiness:** NO (pending WS2-H manual evidence + WS2 promotion signoffs)
+- Historical note: this file captured an earlier NO-GO checkpoint.
+- Current readiness and promotion state are recorded in:
+  - `docs/planning/phase25_gate_matrix.md`
+  - `docs/planning/phase25_promotion_evidence.md`
+  - `artifacts/phase25_execution_20260426.json`

@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "id": "linear_eq_01",
+      "expected_keywords": ["equation", "steps", "solve"],
+      "forbidden_keywords": ["unknown", "error"],
+      "min_score": 0.66
+    },
+    {
+      "id": "linear_eq_02",
+      "expected_keywords": ["isolate", "variable", "result"],
+      "forbidden_keywords": ["hallucination", "nonsense"],
+      "min_score": 0.66
+    }
+  ]
+}

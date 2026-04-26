@@ -1,0 +1,19 @@
+{
+  "artifact": "video-simulation/outputs/ocr_result_20260425_224840.json",
+  "scene_description_score": 0.6667,
+  "rows": [
+    {
+      "id": "linear_eq_01",
+      "score": 0.6667,
+      "min_score": 0.66,
+      "pass": true
+    },
+    {
+      "id": "linear_eq_02",
+      "score": 0.6667,
+      "min_score": 0.66,
+      "pass": true
+    }
+  ],
+  "pass": true
+}

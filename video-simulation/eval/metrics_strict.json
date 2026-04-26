@@ -1,0 +1,122 @@
+{
+  "sample_count": 10,
+  "processed_count": 10,
+  "step_transcription_quality": 0.92,
+  "algebra_consistency_rate": 1.0,
+  "verification_precision_proxy": 1.0,
+  "readability_score_proxy": 0.9,
+  "scene_description_score": 0.3333,
+  "strict_fail_count": 0,
+  "rows": [
+    {
+      "id": "sample01",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234416.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.925,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample02",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234417.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.925,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample03",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234419.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.925,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample04",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234420.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.925,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample05",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234421.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.9,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample06",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234423.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.9,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample07",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234425.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.925,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample08",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234427.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.925,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample09",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234428.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.925,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    },
+    {
+      "id": "sample10",
+      "ok": true,
+      "artifact": "/home/asus/Documents/AURA/video-simulation/outputs/ocr_result_20260425_234430.json",
+      "parser": "qwen2.5-vl",
+      "strict_failed": false,
+      "transcription_quality": 0.925,
+      "algebra_consistency_rate": 1.0,
+      "verification_precision_proxy": 1.0,
+      "readability_score_proxy": 0.9
+    }
+  ]
+}

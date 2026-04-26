@@ -1,8 +1,10 @@
-# AURA — MASTER ROADMAP (Backup Copy)
+# ARCHIVED — AURA MASTER ROADMAP (Backup Snapshot)
 
 ## Spatial AR Intelligence Platform
 
-> Backup copy of `MASTER_ROADMAP.md`. If the primary file is unexpectedly emptied, restore from this file.
+> Archived snapshot for disaster recovery only. This file is **non-authoritative** and may be stale.
+>
+> Use `docs/planning/MASTER_ROADMAP.md` as the only source of truth for current planning, phase status, and maturity decisions.
 
 ---
 
