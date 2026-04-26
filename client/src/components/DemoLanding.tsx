@@ -7,23 +7,18 @@ interface DemoLandingProps {
 const cards: Array<{ id: DemoScenarioId; title: string; description: string }> = [
   {
     id: "care",
-    title: "Care Safety Scan",
+    title: "Simulate",
     description: "Medication and caregiver safety workflow.",
   },
   {
     id: "sustainability",
-    title: "Sustainability Audit",
+    title: "Monitor",
     description: "Energy and waste action checklist.",
   },
   {
     id: "wayfinding",
-    title: "Wayfinding Assistant",
+    title: "Guide",
     description: "Accessible route and obstacle guidance.",
-  },
-  {
-    id: "free",
-    title: "Take Photo / Free Scan",
-    description: "Capture a scene without simulated analysis.",
   },
 ];
 

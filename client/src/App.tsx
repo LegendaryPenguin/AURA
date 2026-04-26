@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
+import { AuraHome } from "./components/AuraHome";
 import { DemoCamera } from "./components/DemoCamera";
 import { DemoResult } from "./components/DemoResult";
 import { DEMO_SCENARIOS, type DemoScenarioId } from "./data/demoScenarios";
 import "./styles/demo.css";
 
-type DemoStage = "camera" | "result";
+type DemoStage = "home" | "camera" | "result";
 
 export default function App() {
-  const [stage, setStage] = useState<DemoStage>("camera");
+  const [stage, setStage] = useState<DemoStage>("home");
+  const [homeExiting, setHomeExiting] = useState(false);
   const [activeScenarioId, setActiveScenarioId] = useState<DemoScenarioId>("math");
   const [capturedDataUrl, setCapturedDataUrl] = useState<string | null>(null);
   const [lockedScenarioPreview, setLockedScenarioPreview] = useState(false);
@@ -16,6 +18,24 @@ export default function App() {
     () => (activeScenarioId === "free" || activeScenarioId === "math" ? undefined : DEMO_SCENARIOS[activeScenarioId]),
     [activeScenarioId],
   );
+
+  if (stage === "home") {
+    return (
+      <AuraHome
+        isExiting={homeExiting}
+        onLaunch={() => {
+          if (homeExiting) {
+            return;
+          }
+          setHomeExiting(true);
+          window.setTimeout(() => {
+            setStage("camera");
+            setHomeExiting(false);
+          }, 280);
+        }}
+      />
+    );
+  }
 
   if (stage === "camera") {
     return (
