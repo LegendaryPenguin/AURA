@@ -1,9 +1,12 @@
 {
+  "id": "/",
   "name": "AURA",
   "short_name": "AURA",
+  "lang": "en",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#030712",
   "theme_color": "#030712",
   "icons": [

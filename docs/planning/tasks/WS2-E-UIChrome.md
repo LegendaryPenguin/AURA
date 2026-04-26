@@ -47,3 +47,11 @@
 - ConfidenceIndicator shows correct color for confidence thresholds (>0.8=green, >0.5=yellow, else red)
 - StatusBar reflects server connection state (connected/disconnected/reconnecting)
 - Unit test: `useFallback` hook returns hardcoded payload matching schema
+
+---
+
+## Current Execution Note (2026-04-25)
+
+- Status for this pass: `DoNotPromote`
+- Evidence index: `docs/planning/phase01_promotion_evidence.md`
+- Remaining gap: promotion/signoff artifact package not yet complete for `Verified`.

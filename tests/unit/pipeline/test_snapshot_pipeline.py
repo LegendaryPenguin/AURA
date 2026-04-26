@@ -58,6 +58,7 @@ def _pipeline_config(**overrides: Any) -> dict[str, Any]:
             "default_query": "What am I looking at?",
             "save_debug_artifacts": False,
         },
+        "validation": {"confidence_floor": 0.0},
     }
     cfg.update(overrides)
     return cfg
@@ -292,6 +293,29 @@ class TestPostprocessStage:
         result = stage.execute(ctx)
         assert result.response["model_version"] == "v2.1"
         assert result.response["warnings"] == ["low light"]
+
+    def test_rejects_overlay_below_configured_confidence_floor(self) -> None:
+        cfg = _pipeline_config()
+        cfg["validation"]["confidence_floor"] = 0.95
+        stage = PostprocessStage(cfg)
+        ctx = PipelineContext(response={
+            "request_id": "req-1",
+            "session_id": "sess-1",
+            "vlm_result": {
+                "overlays": [
+                    {
+                        "bbox": {"x": 0.1, "y": 0.2, "width": 0.5, "height": 0.3},
+                        "label": "widget",
+                        "confidence": 0.9,
+                        "ui_layer": "foreground",
+                        "overlay_type": "info",
+                        "action_required": False,
+                    }
+                ],
+            },
+        })
+        with pytest.raises(ValueError, match="payload failed schema validation"):
+            stage.execute(ctx)
 
 
 # ---------------------------------------------------------------------------

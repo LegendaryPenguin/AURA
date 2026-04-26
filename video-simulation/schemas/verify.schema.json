@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "stage",
+    "transitions",
+    "final_check",
+    "verification_status",
+    "is_verified",
+    "uncertainty_reasons"
+  ],
+  "properties": {
+    "stage": { "const": "verify" },
+    "transitions": { "type": "array", "items": { "type": "object" } },
+    "final_check": { "type": "object" },
+    "verification_status": { "enum": ["verified", "draft"] },
+    "is_verified": { "type": "boolean" },
+    "uncertainty_reasons": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

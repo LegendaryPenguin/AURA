@@ -40,3 +40,11 @@
 - [x] Build completes with zero TypeScript errors
 - [ ] PWA installs on mobile and opens fullscreen *(manual mobile verification pending)*
 - [ ] Integration test: full flow against mock server — open camera → capture → send → render overlay *(blocked: no runnable mock-server script in current repo snapshot)*
+
+---
+
+## Current Execution Note (2026-04-25)
+
+- Status for this pass: `DoNotPromote`
+- Evidence index: `docs/planning/phase01_promotion_evidence.md`
+- Remaining gap: manual PWA/mobile evidence required for `Integrated`.

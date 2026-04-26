@@ -36,3 +36,12 @@
 - [x] Low-confidence responses below threshold are rejected
 - [x] Rejected responses return `None`, not an exception
 - [x] Unit test: 5 valid and 5 invalid fixtures are correctly accepted/rejected
+
+---
+
+## Current Execution Note (2026-04-25)
+
+- Status for this pass: `DoNotPromote`
+- Evidence index: `docs/planning/phase01_promotion_evidence.md`
+- Changes landed: validator is now enforced by snapshot postprocess runtime.
+- Remaining gap: execute full WS3 gate suite with required Python dependencies installed.

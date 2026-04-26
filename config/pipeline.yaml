@@ -10,14 +10,14 @@ orchestrator:
 
 timeouts:
   # Maximum allowed end-to-end snapshot processing time.
-  total_request_timeout_ms: 2000
+  total_request_timeout_ms: 60000
   # Stage-level timeout budgets used by snapshot/streaming pipelines.
-  preprocess_ms: 200
-  transcribe_ms: 800
-  analyze_ms: 1200
+  preprocess_ms: 1500
+  transcribe_ms: 5000
+  analyze_ms: 45000
   segment_ms: 300
   depth_ms: 150
-  postprocess_ms: 200
+  postprocess_ms: 2000
 
 preprocess:
   # Required mime type for image payloads.

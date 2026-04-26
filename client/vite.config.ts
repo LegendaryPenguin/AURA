@@ -8,6 +8,7 @@ import react from "@vitejs/plugin-react";
  * - LAN / phone: `npm run dev -- --host` (or set `server.host` via Vite CLI / env in your shell).
  */
 const useDevHttps = process.env.VITE_DEV_HTTPS === "true";
+const realApiTarget = process.env.VITE_API_TARGET_REAL ?? "http://localhost:9443";
 
 export default defineConfig({
   plugins: [react()],
@@ -16,13 +17,13 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8443",
+        target: realApiTarget,
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
       "/ws": {
-        target: "ws://localhost:8443",
+        target: "ws://localhost:9443",
         changeOrigin: true,
         secure: false,
         ws: true,

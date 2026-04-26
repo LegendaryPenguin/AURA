@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["stage", "parser", "model", "lines", "avg_confidence", "notes"],
+  "properties": {
+    "stage": { "const": "vision_parse" },
+    "parser": { "type": "string" },
+    "model": { "type": "string" },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "confidence", "source"],
+        "properties": {
+          "text": { "type": "string" },
+          "confidence": { "type": "number" },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "avg_confidence": { "type": "number" },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

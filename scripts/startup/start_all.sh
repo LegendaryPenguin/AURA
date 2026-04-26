@@ -5,23 +5,34 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ARTIFACT_DIR="${AURA_STACK_ARTIFACT_DIR:-${ROOT_DIR}/artifacts}"
 
-STACK_MODE="${AURA_STACK_MODE:-mock}" # mock|real
+STACK_MODE="real"
+VLLM_RUNTIME="${VLLM_RUNTIME:-docker}" # docker|python
 FRONTEND_PORT="${AURA_FRONTEND_PORT:-5173}"
 FRONTEND_HOST="${AURA_FRONTEND_HOST:-0.0.0.0}"
-BACKEND_HEALTH_URL_MOCK="${AURA_BACKEND_HEALTH_URL_MOCK:-http://127.0.0.1:8443/health}"
-BACKEND_HEALTH_URL_REAL="${AURA_BACKEND_HEALTH_URL_REAL:-https://127.0.0.1:8443/health}"
+BACKEND_HEALTH_URL_REAL="${AURA_BACKEND_HEALTH_URL_REAL:-http://127.0.0.1:9443/health}"
+REAL_BACKEND_PORT="${AURA_REAL_BACKEND_PORT:-9443}"
+VLLM_HEALTH_URL="${AURA_VLLM_HEALTH_URL:-http://127.0.0.1:8000/health}"
+SAM2_HEALTH_URL="${AURA_SAM2_HEALTH_URL:-http://127.0.0.1:8001/health}"
+VLLM_STARTUP_TIMEOUT_SECONDS="${AURA_VLLM_STARTUP_TIMEOUT_SECONDS:-900}"
+VLM_HTTP_TIMEOUT_MS="${AURA_VLM_TIMEOUT_MS:-60000}"
+VLM_MODEL_ID="${AURA_VLM_MODEL_ID:-Qwen/Qwen2.5-VL-7B-Instruct}"
+VLM_TARGET_DIM="${AURA_VLM_TARGET_DIM:-512}"
+VLM_MAX_TOKENS="${AURA_VLM_MAX_TOKENS:-220}"
 FRONTEND_HEALTH_URL="${AURA_FRONTEND_HEALTH_URL:-http://127.0.0.1:${FRONTEND_PORT}}"
 PUBLIC_LINK_TIMEOUT_SECONDS="${AURA_PUBLIC_LINK_TIMEOUT_SECONDS:-25}"
 PUBLIC_LINK_FILE="${AURA_PUBLIC_LINK_FILE:-${ARTIFACT_DIR}/public-link.txt}"
 PUBLIC_LINK_LOG="${AURA_PUBLIC_LINK_LOG:-${ARTIFACT_DIR}/public-link.log}"
 FRONTEND_LOG="${AURA_FRONTEND_LOG:-${ARTIFACT_DIR}/frontend.log}"
 BACKEND_LOG="${AURA_BACKEND_LOG:-${ARTIFACT_DIR}/backend.log}"
+VLLM_LOG="${AURA_VLLM_LOG:-${ARTIFACT_DIR}/vllm.log}"
+SAM2_LOG="${AURA_SAM2_LOG:-${ARTIFACT_DIR}/sam2.log}"
 
 FRONTEND_PID=""
 BACKEND_PID=""
+VLLM_PID=""
+SAM2_PID=""
 TUNNEL_PID=""
 FRONTEND_EXTERNAL="0"
-BACKEND_EXTERNAL="0"
 
 mkdir -p "${ARTIFACT_DIR}"
 
@@ -37,23 +48,50 @@ wait_for_url() {
   local name="$1"
   local url="$2"
   local timeout="${3:-30}"
+  local log_file="${4:-}"
+  local watched_pid="${5:-}"
   local elapsed=0
+  local next_log_at=3
 
+  echo "Waiting for ${name} at ${url} (timeout ${timeout}s)..."
   while (( elapsed < timeout )); do
     if curl -ksS -m 2 "${url}" >/dev/null 2>&1; then
       echo "${name} healthy at ${url}"
       return 0
+    fi
+
+    if [[ -n "${watched_pid}" ]] && ! kill -0 "${watched_pid}" >/dev/null 2>&1; then
+      echo "${name} process exited before becoming healthy." >&2
+      if [[ -n "${log_file}" && -f "${log_file}" ]]; then
+        echo "Last ${name} log lines:" >&2
+        tail -n 40 "${log_file}" >&2 || true
+      fi
+      return 1
+    fi
+
+    if (( elapsed == 0 || elapsed >= next_log_at )); then
+      echo "  ...${name} not ready yet (${elapsed}s/${timeout}s)"
+      if [[ -n "${log_file}" && -f "${log_file}" ]]; then
+        echo "  --- recent ${name} log ---"
+        tail -n 8 "${log_file}" 2>/dev/null || true
+        echo "  --- end log ---"
+      fi
+      next_log_at=$((next_log_at + 5))
     fi
     sleep 1
     elapsed=$((elapsed + 1))
   done
 
   echo "Timed out waiting for ${name} at ${url}" >&2
+  if [[ -n "${log_file}" && -f "${log_file}" ]]; then
+    echo "Last ${name} log lines:" >&2
+    tail -n 30 "${log_file}" >&2 || true
+  fi
   return 1
 }
 
 cleanup() {
-  for pid in "${TUNNEL_PID}" "${BACKEND_PID}" "${FRONTEND_PID}"; do
+  for pid in "${TUNNEL_PID}" "${BACKEND_PID}" "${SAM2_PID}" "${VLLM_PID}" "${FRONTEND_PID}"; do
     if [[ -n "${pid}" ]] && kill -0 "${pid}" >/dev/null 2>&1; then
       kill "${pid}" >/dev/null 2>&1 || true
     fi
@@ -75,43 +113,57 @@ start_frontend() {
   echo "Starting frontend on ${FRONTEND_HOST}:${FRONTEND_PORT} ..."
   (
     cd "${ROOT_DIR}/client"
+    export VITE_API_TARGET_REAL="${VITE_API_TARGET_REAL:-http://localhost:${REAL_BACKEND_PORT}}"
+    export VITE_REQUEST_TIMEOUT_MS="${VITE_REQUEST_TIMEOUT_MS:-60000}"
     npm run dev -- --host "${FRONTEND_HOST}" --port "${FRONTEND_PORT}" --strictPort
   ) >"${FRONTEND_LOG}" 2>&1 &
   FRONTEND_PID="$!"
-  wait_for_url "Frontend" "${FRONTEND_HEALTH_URL}" 35
+  wait_for_url "Frontend" "${FRONTEND_HEALTH_URL}" 35 "${FRONTEND_LOG}"
 }
 
 start_backend() {
-  case "${STACK_MODE}" in
-    mock)
-      if curl -ksS -m 2 "${BACKEND_HEALTH_URL_MOCK}" >/dev/null 2>&1; then
-        echo "Mock backend already running at ${BACKEND_HEALTH_URL_MOCK}; reusing existing process."
-        BACKEND_EXTERNAL="1"
-        BACKEND_PID=""
-        return 0
-      fi
-      echo "Starting mock backend on :8443 ..."
+  start_real_dependencies() {
+    if curl -ksS -m 2 "${VLLM_HEALTH_URL}" >/dev/null 2>&1; then
+      echo "vLLM already running at ${VLLM_HEALTH_URL}; reusing existing process."
+    else
+      echo "Starting vLLM service on :8000 ..."
       (
         cd "${ROOT_DIR}"
-        bash scripts/dev/run_mock_server.sh
-      ) >"${BACKEND_LOG}" 2>&1 &
-      BACKEND_PID="$!"
-      wait_for_url "Mock backend" "${BACKEND_HEALTH_URL_MOCK}" 35
-      ;;
-    real)
-      echo "Starting real backend on :8443 ..."
+        VLLM_MODEL_ID="${VLM_MODEL_ID}" HF_MODEL_HANDLE="${VLM_MODEL_ID}" bash scripts/startup/start_vllm.sh
+      ) >"${VLLM_LOG}" 2>&1 &
+      VLLM_PID="$!"
+      wait_for_url "vLLM" "${VLLM_HEALTH_URL}" "${VLLM_STARTUP_TIMEOUT_SECONDS}" "${VLLM_LOG}" "${VLLM_PID}"
+    fi
+
+    if curl -ksS -m 2 "${SAM2_HEALTH_URL}" >/dev/null 2>&1; then
+      echo "SAM2 service already running at ${SAM2_HEALTH_URL}; reusing existing process."
+    else
+      echo "Starting SAM2 service on :8001 ..."
       (
         cd "${ROOT_DIR}"
-        AURA_ENABLE_PUBLIC_LINK=0 bash scripts/startup/start_server.sh
-      ) >"${BACKEND_LOG}" 2>&1 &
-      BACKEND_PID="$!"
-      wait_for_url "Real backend" "${BACKEND_HEALTH_URL_REAL}" 45
-      ;;
-    *)
-      echo "Invalid AURA_STACK_MODE='${STACK_MODE}'. Use 'mock' or 'real'." >&2
-      exit 1
-      ;;
-  esac
+        bash scripts/startup/start_sam2_service.sh
+      ) >"${SAM2_LOG}" 2>&1 &
+      SAM2_PID="$!"
+      wait_for_url "SAM2 service" "${SAM2_HEALTH_URL}" 35 "${SAM2_LOG}" "${SAM2_PID}"
+    fi
+  }
+
+  start_real_dependencies
+  if curl -ksS -m 2 "${BACKEND_HEALTH_URL_REAL}" >/dev/null 2>&1; then
+    echo "Real backend already running at ${BACKEND_HEALTH_URL_REAL}; reusing existing process."
+    BACKEND_PID=""
+  else
+    echo "Starting real backend on :${REAL_BACKEND_PORT} ..."
+    (
+      cd "${ROOT_DIR}"
+      AURA_ENABLE_PUBLIC_LINK=0 AURA_DISABLE_SSL=1 AURA_PORT="${REAL_BACKEND_PORT}" \
+      AURA_VLM_TIMEOUT_MS="${VLM_HTTP_TIMEOUT_MS}" AURA_VLM_MODEL_ID="${VLM_MODEL_ID}" \
+      AURA_VLM_TARGET_DIM="${VLM_TARGET_DIM}" AURA_VLM_MAX_TOKENS="${VLM_MAX_TOKENS}" \
+      bash scripts/startup/start_server.sh
+    ) >"${BACKEND_LOG}" 2>&1 &
+    BACKEND_PID="$!"
+    wait_for_url "Real backend" "${BACKEND_HEALTH_URL_REAL}" 45 "${BACKEND_LOG}"
+  fi
 }
 
 start_tunnel() {
@@ -166,18 +218,47 @@ require_cmd npm
 require_cmd ssh
 require_cmd curl
 
+ensure_vllm_runtime_ready() {
+  if [[ "${VLLM_RUNTIME}" != "docker" ]]; then
+    return 0
+  fi
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker is required for real backend when VLLM_RUNTIME=docker." >&2
+    exit 1
+  fi
+  if [[ "${DOCKER_USE_SUDO:-0}" == "1" ]]; then
+    if sudo docker info >/dev/null 2>&1; then
+      return 0
+    fi
+    echo "DOCKER_USE_SUDO=1 was set, but sudo docker access failed." >&2
+    echo "Verify your sudo password or add docker group access." >&2
+    exit 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "Docker daemon is not reachable for this user." >&2
+    echo "Run one-time fix then restart terminal:" >&2
+    echo "  sudo usermod -aG docker \$USER" >&2
+    echo "  newgrp docker" >&2
+    echo "Or run this script with DOCKER_USE_SUDO=1 (password prompt expected)." >&2
+    exit 1
+  fi
+}
+
 trap cleanup EXIT
 trap forward_term INT TERM
 
+ensure_vllm_runtime_ready
 start_frontend
 start_backend
 start_tunnel
 
 echo ""
 echo "Stack is ready."
+echo "- Stack mode  : ${STACK_MODE}"
 echo "- Frontend log: ${FRONTEND_LOG}"
 echo "- Backend log : ${BACKEND_LOG}"
 echo "- Tunnel log  : ${PUBLIC_LINK_LOG}"
+echo "- Backend map : real=http://127.0.0.1:${REAL_BACKEND_PORT}"
 echo "Press Ctrl+C to stop all."
 
 # Keep stack alive as long as frontend and backend remain healthy.
@@ -195,16 +276,20 @@ while true; do
     fi
   fi
 
-  if [[ "${BACKEND_EXTERNAL}" == "1" ]]; then
-    if ! curl -ksS -m 2 "${BACKEND_HEALTH_URL_MOCK}" >/dev/null 2>&1; then
-      echo "Backend at ${BACKEND_HEALTH_URL_MOCK} is no longer reachable; shutting down stack..."
+  if [[ -z "${BACKEND_PID}" ]] || ! kill -0 "${BACKEND_PID}" >/dev/null 2>&1; then
+    if ! curl -ksS -m 2 "${BACKEND_HEALTH_URL_REAL}" >/dev/null 2>&1; then
+      echo "Real backend process exited; shutting down stack..."
       break
     fi
-  else
-    if [[ -z "${BACKEND_PID}" ]] || ! kill -0 "${BACKEND_PID}" >/dev/null 2>&1; then
-      echo "Backend process exited; shutting down stack..."
-      break
-    fi
+  fi
+
+  if [[ -n "${VLLM_PID}" ]] && ! kill -0 "${VLLM_PID}" >/dev/null 2>&1; then
+    echo "vLLM process exited; shutting down stack..."
+    break
+  fi
+  if [[ -n "${SAM2_PID}" ]] && ! kill -0 "${SAM2_PID}" >/dev/null 2>&1; then
+    echo "SAM2 process exited; shutting down stack..."
+    break
   fi
 
   if [[ -z "${TUNNEL_PID}" ]] || ! kill -0 "${TUNNEL_PID}" >/dev/null 2>&1; then

@@ -14,14 +14,23 @@ class OCRMathScene(Scene):
         explanation_steps = {explanation_steps}
         final_check = {final_check}
         render_quality_grade = r\"\"\"{render_quality_grade}\"\"\"
+        narration_intro = r\"\"\"{narration_intro}\"\"\"
+        narration_outro = r\"\"\"{narration_outro}\"\"\"
+        visual_style = r\"\"\"{visual_style}\"\"\"
         draft_mode = {draft_mode}
 
-        title = Text("Algebra Tutor Walkthrough").scale(0.58).to_edge(UP)
+        title_text = "Aura Hybrid Correction Simulation" if visual_style == "hybrid" else "Algebra Tutor Walkthrough"
+        title = Text(title_text).scale(0.58).to_edge(UP)
         self.play(FadeIn(title, shift=UP), run_time=0.6)
 
         objective = Text("Goal: solve for x and verify", font_size=24).set_color(BLUE_B).next_to(title, DOWN, buff=0.15)
         quality_badge = Text(f"Draft quality: {{render_quality_grade}}", font_size=20).set_color(YELLOW).to_edge(UP, buff=0.2).shift(RIGHT * 4.5)
         self.play(FadeIn(objective), FadeIn(quality_badge), run_time=0.35)
+        intro = Text(narration_intro, font_size=20).set_color(BLUE_D)
+        if intro.get_width() > 11.5:
+            intro.set_width(11.5)
+        intro.next_to(objective, DOWN, buff=0.15)
+        self.play(FadeIn(intro), run_time=0.3)
 
         if image_path:
             source = ImageMobject(image_path).set_height(3.4).to_edge(LEFT, buff=0.45)
@@ -34,13 +43,13 @@ class OCRMathScene(Scene):
         explanation_panel.move_to(RIGHT * 2.95 + DOWN * 2.65)
         self.play(ShowCreation(panel), ShowCreation(explanation_panel), run_time=0.3)
 
-        max_lines = max(len(display_steps), 1)
-        line_gap = max(0.46, min(0.62, 3.2 / max_lines))
+        max_lines = max(min(len(display_steps), 7), 1)
+        line_gap = max(0.42, min(0.58, 3.0 / max_lines))
         right_x = 2.95
         top_y = 1.92
 
         step_mobs = VGroup()
-        for i, step in enumerate(display_steps):
+        for i, step in enumerate(display_steps[:7]):
             line = Text(f"Step {{i+1}}: {{step}}", font_size=27).set_color(GREY_A)
             if line.get_width() > 6.1:
                 line.set_width(6.1)
@@ -72,6 +81,10 @@ class OCRMathScene(Scene):
             final_card.set_width(6.8)
         final_card.move_to(explanation_panel.get_center())
         self.play(FadeIn(final_card), run_time=0.4)
+        outro = Text(narration_outro, font_size=19).set_color(BLUE_D).next_to(explanation_panel, DOWN, buff=0.2)
+        if outro.get_width() > 9.8:
+            outro.set_width(9.8)
+        self.play(FadeIn(outro), run_time=0.3)
         self.wait(0.8 if preview_mode else 1.2)
 """
 
@@ -94,6 +107,9 @@ def write_scene_file(
         explanation_steps=repr(story.get("explanation_steps", [])),
         final_check=repr(story.get("final_check", {})),
         render_quality_grade=_escape(str(story.get("render_quality_grade", "low"))),
+        narration_intro=_escape(str(story.get("narration_intro", ""))),
+        narration_outro=_escape(str(story.get("narration_outro", ""))),
+        visual_style=_escape(str(story.get("visual_style", "hybrid"))),
         draft_mode=str(bool(story.get("draft_mode", False))),
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)

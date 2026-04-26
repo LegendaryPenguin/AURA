@@ -47,6 +47,14 @@ describe("useSnapshotAnalysis", () => {
       await pending!;
     });
 
+    expect(mockedPostAnalyze).toHaveBeenCalledTimes(1);
+    expect(mockedPostAnalyze.mock.calls[0]?.[0]).toMatchObject({
+      request_id: expect.any(String),
+      session_id: "session-1",
+      image_base64: "ZmFrZQ==",
+      query: "What is this?",
+      capture_ts_ms: expect.any(Number),
+    });
     expect(result.current.status).toBe("success");
     expect(result.current.data?.request_id).toBe("req-1");
     expect(result.current.error).toBeNull();

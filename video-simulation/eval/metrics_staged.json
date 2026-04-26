@@ -1,0 +1,60 @@
+{
+  "sample_count": 10,
+  "processed_count": 0,
+  "step_transcription_quality": 0.0,
+  "algebra_consistency_rate": 0.0,
+  "verification_precision_proxy": 0.0,
+  "readability_score_proxy": 0.0,
+  "rows": [
+    {
+      "id": "sample01",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample01.png"
+    },
+    {
+      "id": "sample02",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample02.png"
+    },
+    {
+      "id": "sample03",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample03.png"
+    },
+    {
+      "id": "sample04",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample04.png"
+    },
+    {
+      "id": "sample05",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample05.png"
+    },
+    {
+      "id": "sample06",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample06.png"
+    },
+    {
+      "id": "sample07",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample07.png"
+    },
+    {
+      "id": "sample08",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample08.png"
+    },
+    {
+      "id": "sample09",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample09.png"
+    },
+    {
+      "id": "sample10",
+      "ok": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 277, in <module>\n    main()\n  File \"/home/asus/Documents/AURA/video-simulation/pipeline/run_pipeline.py\", line 181, in main\n    raise FileNotFoundError(f\"Image not found: {image_path}\")\nFileNotFoundError: Image not found: /home/asus/Documents/AURA/video-simulation/inputs/sample10.png"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["stage", "normalized_steps", "dropped_steps", "quality_scores", "avg_quality"],
+  "properties": {
+    "stage": { "const": "normalize" },
+    "normalized_steps": { "type": "array", "items": { "type": "string" } },
+    "dropped_steps": { "type": "array", "items": { "type": "object" } },
+    "quality_scores": { "type": "array", "items": { "type": "number" } },
+    "avg_quality": { "type": "number" }
+  },
+  "additionalProperties": true
+}
