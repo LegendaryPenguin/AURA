@@ -10,6 +10,7 @@ export default function App() {
   const [stage, setStage] = useState<DemoStage>("camera");
   const [activeScenarioId, setActiveScenarioId] = useState<DemoScenarioId>("math");
   const [capturedDataUrl, setCapturedDataUrl] = useState<string | null>(null);
+  const [lockedScenarioPreview, setLockedScenarioPreview] = useState(false);
 
   const scenario = useMemo(
     () => (activeScenarioId === "free" || activeScenarioId === "math" ? undefined : DEMO_SCENARIOS[activeScenarioId]),
@@ -21,12 +22,27 @@ export default function App() {
       <DemoCamera
         scenarioId={activeScenarioId}
         scenario={scenario}
-        onSelectScenario={(scenarioId) => {
-          setActiveScenarioId(scenarioId);
+        showLockedResult={lockedScenarioPreview}
+        lockedCaptureDataUrl={capturedDataUrl}
+        onExitLockedResult={() => {
+          setLockedScenarioPreview(false);
           setCapturedDataUrl(null);
         }}
-        onCaptureComplete={(dataUrl) => {
+        onSelectScenario={(scenarioId) => {
+          setActiveScenarioId(scenarioId);
+          setLockedScenarioPreview(false);
+          setCapturedDataUrl(null);
+        }}
+        onCaptureComplete={(dataUrl, target = "result", detectedScenarioId) => {
+          if (detectedScenarioId) {
+            setActiveScenarioId(detectedScenarioId);
+          }
           setCapturedDataUrl(dataUrl);
+          if (target === "locked") {
+            setLockedScenarioPreview(true);
+            return;
+          }
+          setLockedScenarioPreview(false);
           setStage("result");
         }}
       />

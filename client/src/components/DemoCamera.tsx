@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DemoOverlayRenderer } from "./DemoOverlayRenderer";
 import { FREE_SCAN_COPY, MATH_BASELINE_COPY, type DemoScenario, type DemoScenarioId } from "../data/demoScenarios";
+import { detectScenarioFromCapture } from "../utils/sceneMatcher";
 
 interface DemoCameraProps {
   scenarioId: DemoScenarioId;
   scenario?: DemoScenario;
+  showLockedResult: boolean;
+  lockedCaptureDataUrl: string | null;
+  onExitLockedResult: () => void;
   onSelectScenario: (scenarioId: DemoScenarioId) => void;
-  onCaptureComplete: (capturedDataUrl: string) => void;
+  onCaptureComplete: (capturedDataUrl: string, target?: "result" | "locked", detectedScenarioId?: DemoScenarioId) => void;
 }
 
 const scenarioButtons: Array<{ id: DemoScenarioId; label: string }> = [
@@ -16,7 +21,15 @@ const scenarioButtons: Array<{ id: DemoScenarioId; label: string }> = [
   { id: "free", label: "Free Scan" },
 ];
 
-export function DemoCamera({ scenarioId, scenario, onSelectScenario, onCaptureComplete }: DemoCameraProps) {
+export function DemoCamera({
+  scenarioId,
+  scenario,
+  showLockedResult,
+  lockedCaptureDataUrl,
+  onExitLockedResult,
+  onSelectScenario,
+  onCaptureComplete,
+}: DemoCameraProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const guideRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -140,14 +153,18 @@ export function DemoCamera({ scenarioId, scenario, onSelectScenario, onCaptureCo
 
     try {
       if (scenarioId === "free" || scenarioId === "math") {
-        onCaptureComplete(captureDataUrl);
+        onCaptureComplete(captureDataUrl, "result", scenarioId);
         return;
       }
 
+      const detectedScenarioId = await detectScenarioFromCapture(captureDataUrl);
+      const resolvedScenarioId = detectedScenarioId ?? scenarioId;
+
       setIsAnalyzing(true);
       window.setTimeout(() => {
-        onCaptureComplete(captureDataUrl);
-      }, 1050);
+        setIsAnalyzing(false);
+        onCaptureComplete(captureDataUrl, "locked", resolvedScenarioId);
+      }, 4000);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -159,6 +176,12 @@ export function DemoCamera({ scenarioId, scenario, onSelectScenario, onCaptureCo
         <video ref={videoRef} muted playsInline className="camera-feed" />
         <div ref={guideRef} className="guide-43" aria-hidden="true">
           <div className="guide-label">4:3 alignment guide</div>
+          {showLockedResult && scenario && lockedCaptureDataUrl ? (
+            <div className="locked-guide-result">
+              <img className="locked-guide-image" src={lockedCaptureDataUrl} alt="Captured guide frame" />
+              <DemoOverlayRenderer overlays={scenario.overlays} paths={scenario.paths} scenarioId={scenarioId} />
+            </div>
+          ) : null}
         </div>
         {isAnalyzing ? (
           <div className="analyzing-overlay" aria-live="polite">
@@ -197,9 +220,20 @@ export function DemoCamera({ scenarioId, scenario, onSelectScenario, onCaptureCo
           </div>
 
           <div className="camera-actions overlay-actions">
-            <button type="button" className="primary-btn" onClick={handleCapture} disabled={!cameraReady || isAnalyzing}>
-              {scenarioId === "free" || scenarioId === "math" ? "Capture Photo" : "Capture & Analyze"}
-            </button>
+            {showLockedResult && scenario ? (
+              <>
+                <button type="button" className="ghost-btn" onClick={onExitLockedResult}>
+                  Clear AR Lock
+                </button>
+                <button type="button" className="primary-btn" onClick={handleCapture} disabled={!cameraReady || isAnalyzing}>
+                  Capture Again
+                </button>
+              </>
+            ) : (
+              <button type="button" className="primary-btn" onClick={handleCapture} disabled={!cameraReady || isAnalyzing}>
+                {scenarioId === "free" || scenarioId === "math" ? "Capture Photo" : "Capture & Analyze"}
+              </button>
+            )}
           </div>
 
           {error ? <p className="camera-error overlay-error">Camera error: {error}</p> : null}

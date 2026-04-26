@@ -43,6 +43,49 @@ const buildUrl = (path: string): string => {
   return `${normalizedBase}${normalizedPath}`;
 };
 
+export interface VideoSimCaptureCreateResponse {
+  job_id: string;
+  status: string;
+  status_url: string;
+  video_url: string;
+}
+
+export interface VideoSimJobStatusResponse {
+  job_id: string;
+  status: "queued" | "running" | "done" | "error";
+  message?: string;
+  error?: string | null;
+  video_url?: string;
+  elapsed_seconds?: number;
+}
+
+export interface BackendTarget {
+  baseUrl: string;
+  mode: "proxy" | "custom";
+}
+
+export function getBackendTarget(): BackendTarget {
+  return API_BASE_URL
+    ? {
+        baseUrl: API_BASE_URL.replace(/\/+$/, ""),
+        mode: "custom",
+      }
+    : {
+        baseUrl: "",
+        mode: "proxy",
+      };
+}
+
+function buildVideoApiUrl(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const alreadyApiPrefixed = normalized.startsWith("/api/");
+  const target = getBackendTarget().baseUrl;
+  if (!target) {
+    return alreadyApiPrefixed ? normalized : `/api${normalized}`;
+  }
+  return `${target}${alreadyApiPrefixed ? normalized : `/api${normalized}`}`;
+}
+
 const mapHttpError = (status: number): ApiClientError => {
   switch (status) {
     case 422:
@@ -174,4 +217,31 @@ export async function getHealth(): Promise<HealthResponse> {
     method: "GET",
   });
   return validateHealthResponse(raw);
+}
+
+export async function createVideoSimJob(imageBlob: Blob, fileName = `capture-${Date.now()}.jpg`): Promise<VideoSimCaptureCreateResponse> {
+  const form = new FormData();
+  form.append("image", imageBlob, fileName);
+  const response = await fetch(buildVideoApiUrl("/video-sim/capture"), {
+    method: "POST",
+    body: form,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Upload failed (${response.status}): ${text}`);
+  }
+  return (await response.json()) as VideoSimCaptureCreateResponse;
+}
+
+export async function getVideoSimJob(jobId: string): Promise<VideoSimJobStatusResponse> {
+  const response = await fetch(buildVideoApiUrl(`/video-sim/jobs/${jobId}`));
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Job polling failed (${response.status}): ${text}`);
+  }
+  return (await response.json()) as VideoSimJobStatusResponse;
+}
+
+export function getVideoSimVideoUrl(jobId: string): string {
+  return buildVideoApiUrl(`/video-sim/video/${jobId}`);
 }
