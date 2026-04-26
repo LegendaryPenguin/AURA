@@ -72,3 +72,15 @@ htmlcov/
 # CUDA / GPU cache
 __pycache__/
 .nv/
+
+# HuggingFace cache
+.hf/
+.hf-cache/
+
+# Local runtime/build artifacts
+artifacts/
+.venv-vllm/
+.cursor/
+
+# Video simulation outputs
+video-simulation/outputs/

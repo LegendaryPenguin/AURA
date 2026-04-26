@@ -23,7 +23,7 @@ vlm:
   # OpenAI-compatible vLLM endpoint used by WS4-A.
   endpoint: "http://127.0.0.1:8000/v1"
   # Primary model identifier served by vLLM.
-  model_id: "Qwen/Qwen2.5-VL-7B-Instruct"
+  model_id: "Qwen/Qwen2.5-VL-3B-Instruct-AWQ"
   # Fallback model provider enabled when primary is unavailable.
   fallback_provider: "llava"
   # Timeout budget for a single VLM request in milliseconds.

@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import OverlayCanvas from "./components/overlays/OverlayCanvas";
+import { StatusBar } from "./components/ui/StatusBar";
+import { ScanAnimation } from "./components/ui/ScanAnimation";
 import { useFallback } from "./hooks/useFallback";
 import { useFrameCapture } from "./hooks/useFrameCapture";
 import { useOverlay } from "./hooks/useOverlay";
 import { useSnapshotAnalysis } from "./hooks/useSnapshotAnalysis";
+import { useCamera } from "./hooks/useCamera";
+import { useAudioRecorder } from "./hooks/useAudioRecorder";
+import { useAutoScan } from "./hooks/useAutoScan";
 import { ApiClientError } from "./services/api";
 import type { OverlayType, UiLayer } from "../../shared/schemas/types";
 
-const PHASES = [0, 1, 2, 3, 4, 5] as const;
+const PHASES = [0, 1, 2, 3] as const;
 const phaseLabels: Record<number, string> = {
   0: "Fallback",
   1: "Snapshot",
   2: "Live Camera + Voice",
   3: "Auto-Scan",
-  4: "Tracked AR",
-  5: "Real-Time Streaming",
 };
 
 const LAYER_BY_INDEX: readonly UiLayer[] = ["background", "midground", "foreground", "hud"] as const;
@@ -36,65 +39,48 @@ const phase0DemoOverlay = {
 };
 
 export default function App() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [phaseMode, setPhaseMode] = useState(1);
-  const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "reconnecting">("disconnected");
 
+  const camera = useCamera({
+    facing: "environment",
+    autoStart: false,
+  });
+
+  const audio = useAudioRecorder();
   const { captureFrame } = useFrameCapture();
   const overlay = useOverlay({ autoDismissMs: 60_000 });
   const { fallbackData, isFallbackActive, clearFallback } = useFallback();
 
   const captureForApi = useCallback(() => {
-    const result = captureFrame(videoRef.current);
+    const result = captureFrame(camera.videoRef.current);
     if (!result) {
       throw new ApiClientError("Could not read a frame from the camera.", "INVALID_RESPONSE");
     }
     const b64 = result.dataUrl.includes(",") ? (result.dataUrl.split(",")[1] ?? result.dataUrl) : result.dataUrl;
     return b64;
-  }, [captureFrame]);
+  }, [captureFrame, camera.videoRef]);
 
-  const snapshot = useSnapshotAnalysis({ captureFrame: captureForApi });
+  const recordAudioForApi = useCallback(async () => {
+    if (phaseMode < 2) return undefined;
+    return audio.stopRecording();
+  }, [phaseMode, audio]);
+
+  const snapshot = useSnapshotAnalysis({
+    captureFrame: captureForApi,
+    recordAudio: recordAudioForApi,
+  });
 
   const modeName = useMemo(() => phaseLabels[phaseMode] ?? "Unknown", [phaseMode]);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
-
-    const startCamera = async () => {
-      if (phaseMode === 0) {
-        setIsCameraReady(false);
-        return;
-      }
-
-      try {
-        setError(null);
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          setIsCameraReady(true);
-        }
-      } catch (cameraError) {
-        setError(`Camera unavailable: ${(cameraError as Error).message}`);
-        setIsCameraReady(false);
-      }
-    };
-
-    void startCamera();
-
-    return () => {
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.srcObject = null;
-      }
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-    };
+    if (phaseMode === 0) {
+      camera.stop();
+    } else {
+      void camera.start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phaseMode]);
 
   useEffect(() => {
@@ -107,9 +93,7 @@ export default function App() {
   }, [phaseMode, clearFallback, overlay]);
 
   useEffect(() => {
-    if (!isFallbackActive || !fallbackData) {
-      return;
-    }
+    if (!isFallbackActive || !fallbackData) return;
     const mapped = fallbackData.overlays.map((o, i) => ({
       id: `fallback-${i}`,
       bbox: { x: o.bbox[0], y: o.bbox[1], width: o.bbox[2], height: o.bbox[3] },
@@ -122,14 +106,32 @@ export default function App() {
     overlay.replaceOverlays(mapped);
   }, [isFallbackActive, fallbackData, overlay]);
 
-  const runAnalyze = async () => {
-    if (phaseMode === 0) {
-      return;
-    }
+  // Health check to set connection status
+  useEffect(() => {
+    let cancelled = false;
+    const checkHealth = async () => {
+      try {
+        const { getHealth } = await import("./services/api");
+        const h = await getHealth();
+        if (!cancelled) setConnectionStatus(h.status ? "connected" : "disconnected");
+      } catch {
+        if (!cancelled) setConnectionStatus("disconnected");
+      }
+    };
+    void checkHealth();
+    const interval = setInterval(() => void checkHealth(), 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const runAnalyze = useCallback(async () => {
+    if (phaseMode === 0) return;
     setError(null);
     try {
-      const w = videoRef.current?.videoWidth ?? 0;
-      const h = videoRef.current?.videoHeight ?? 0;
+      const w = camera.videoRef.current?.videoWidth ?? 0;
+      const h = camera.videoRef.current?.videoHeight ?? 0;
       const response = await snapshot.runAnalysis({
         query: "What am I looking at?",
         sessionId: "aura-app-shell",
@@ -139,18 +141,40 @@ export default function App() {
       });
       overlay.hydrateFromResponse(response);
     } catch (analyzeError) {
+      if (analyzeError instanceof ApiClientError && analyzeError.code === "RATE_LIMITED") {
+        return;
+      }
       setError(
         analyzeError instanceof ApiClientError
           ? analyzeError.message
           : (analyzeError as Error).message,
       );
     }
+  }, [phaseMode, camera.videoRef, snapshot, overlay]);
+
+  const autoScan = useAutoScan({
+    intervalMs: 2500,
+    onScan: runAnalyze,
+    enabled: phaseMode === 3 && camera.isReady,
+  });
+
+  const handleCaptureClick = async () => {
+    if (phaseMode >= 2 && !audio.isRecording) {
+      await audio.startRecording();
+      setTimeout(async () => {
+        await runAnalyze();
+      }, 500);
+    } else {
+      await runAnalyze();
+    }
   };
 
   return (
     <main style={styles.app}>
       <header style={styles.header}>
-        <h1 style={styles.title}>AURA App Shell</h1>
+        <h1 style={styles.title}>
+          <span style={styles.titleIcon}>◉</span> AURA
+        </h1>
         <div style={styles.headerRight}>
           <label htmlFor="phase-select" style={styles.label}>
             Phase
@@ -167,23 +191,53 @@ export default function App() {
               </option>
             ))}
           </select>
-          <button
-            onClick={() => {
-              void runAnalyze();
-            }}
-            disabled={snapshot.isLoading || phaseMode === 0}
-            style={styles.button}
-            type="button"
-          >
-            {snapshot.isLoading ? "Analyzing..." : "Capture + Analyze"}
-          </button>
+
+          {phaseMode === 3 ? (
+            <button
+              onClick={autoScan.toggleAutoScan}
+              style={{
+                ...styles.button,
+                background: autoScan.isAutoScanning ? "#dc2626" : "#059669",
+                borderColor: autoScan.isAutoScanning ? "#dc2626" : "#059669",
+              }}
+              type="button"
+            >
+              {autoScan.isAutoScanning ? `Stop Scan (${autoScan.scanCount})` : "Start Auto-Scan"}
+            </button>
+          ) : (
+            <button
+              onClick={() => void handleCaptureClick()}
+              disabled={snapshot.isLoading || phaseMode === 0 || (!camera.isReady && phaseMode > 0)}
+              style={{
+                ...styles.button,
+                opacity: snapshot.isLoading || phaseMode === 0 ? 0.5 : 1,
+              }}
+              type="button"
+            >
+              {snapshot.isLoading
+                ? "Analyzing..."
+                : phaseMode >= 2
+                  ? "Hold to Speak + Capture"
+                  : "Capture + Analyze"}
+            </button>
+          )}
+
+          {phaseMode >= 2 && (
+            <button
+              onClick={() => void camera.switchFacing()}
+              style={styles.buttonSecondary}
+              type="button"
+              title="Switch camera"
+            >
+              ⟲
+            </button>
+          )}
         </div>
       </header>
 
       <section style={styles.stage}>
         {phaseMode === 0 ? (
           <video
-            ref={videoRef}
             style={styles.video}
             controls
             loop
@@ -192,17 +246,42 @@ export default function App() {
             src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
           />
         ) : (
-          <video ref={videoRef} style={styles.video} muted playsInline />
+          <video ref={camera.videoRef} style={styles.video} muted playsInline />
         )}
         <OverlayCanvas overlays={overlay.overlays} />
+        {(snapshot.isLoading || autoScan.isAutoScanning) && (
+          <ScanAnimation isScanning={true} />
+        )}
+        {audio.isRecording && (
+          <div style={styles.recordingIndicator}>
+            <span style={styles.recordingDot} />
+            Recording...
+          </div>
+        )}
       </section>
 
-      <footer style={styles.statusBar}>
+      <StatusBar
+        serverStatus={connectionStatus}
+        modelWarm={connectionStatus === "connected"}
+        currentPhase={phaseMode}
+      />
+
+      {(error || camera.error || autoScan.lastError) && (
+        <div style={styles.errorBar}>
+          {error && <span>Error: {error}</span>}
+          {camera.error && <span>Camera: {camera.error}</span>}
+          {autoScan.lastError && <span>Scan: {autoScan.lastError}</span>}
+        </div>
+      )}
+
+      <footer style={styles.statusInfo}>
         <span>Mode: {modeName}</span>
-        <span>Camera: {isCameraReady || phaseMode === 0 ? "ready" : "not ready"}</span>
-        <span>Overlay count: {overlay.overlays.length}</span>
-        {error ? <span style={styles.error}>Error: {error}</span> : <span>Connection: ready</span>}
-        {snapshot.error ? <span style={styles.error}>API: {snapshot.error}</span> : null}
+        <span>Camera: {camera.isReady || phaseMode === 0 ? "ready" : "not ready"} ({camera.facing})</span>
+        <span>Overlays: {overlay.overlays.length}</span>
+        {phaseMode === 3 && (
+          <span>Scans: {autoScan.scanCount} | {autoScan.isAutoScanning ? "running" : "stopped"}</span>
+        )}
+        {snapshot.error && <span style={styles.errorText}>API: {snapshot.error}</span>}
       </footer>
     </main>
   );
@@ -212,8 +291,8 @@ const styles: Record<string, React.CSSProperties> = {
   app: {
     minHeight: "100vh",
     display: "grid",
-    gridTemplateRows: "auto 1fr auto",
-    gap: "0.75rem",
+    gridTemplateRows: "auto 1fr auto auto auto",
+    gap: "0.5rem",
     background: "#030712",
     color: "#f9fafb",
     padding: "1rem",
@@ -229,6 +308,13 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     fontSize: "1.25rem",
     margin: 0,
+    display: "flex",
+    alignItems: "center",
+    gap: "0.4rem",
+  },
+  titleIcon: {
+    color: "#3b82f6",
+    fontSize: "1.4rem",
   },
   headerRight: {
     display: "flex",
@@ -254,6 +340,17 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#1d4ed8",
     color: "#fff",
     cursor: "pointer",
+    fontWeight: 500,
+    transition: "opacity 0.2s",
+  },
+  buttonSecondary: {
+    padding: "0.45rem 0.6rem",
+    borderRadius: "0.45rem",
+    border: "1px solid #374151",
+    background: "#1f2937",
+    color: "#f9fafb",
+    cursor: "pointer",
+    fontSize: "1.1rem",
   },
   stage: {
     position: "relative",
@@ -272,16 +369,49 @@ const styles: Record<string, React.CSSProperties> = {
     objectFit: "cover",
     display: "block",
   },
-  statusBar: {
+  recordingIndicator: {
+    position: "absolute",
+    top: "0.75rem",
+    right: "0.75rem",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.4rem",
+    padding: "0.3rem 0.6rem",
+    borderRadius: "9999px",
+    background: "rgba(220, 38, 38, 0.85)",
+    color: "#fff",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+  },
+  recordingDot: {
+    display: "inline-block",
+    width: "0.5rem",
+    height: "0.5rem",
+    borderRadius: "50%",
+    background: "#fff",
+    animation: "pulse 1s ease-in-out infinite",
+  },
+  errorBar: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "1rem",
+    fontSize: "0.8rem",
+    color: "#fca5a5",
+    padding: "0.5rem",
+    background: "rgba(127, 29, 29, 0.3)",
+    borderRadius: "0.5rem",
+  },
+  statusInfo: {
     display: "flex",
     flexWrap: "wrap",
     gap: "1rem",
     alignItems: "center",
-    fontSize: "0.875rem",
+    fontSize: "0.8rem",
     borderTop: "1px solid #1f2937",
-    paddingTop: "0.75rem",
+    paddingTop: "0.5rem",
+    opacity: 0.7,
   },
-  error: {
+  errorText: {
     color: "#fca5a5",
   },
 };
