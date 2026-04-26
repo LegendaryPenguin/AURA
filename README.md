@@ -1,7 +1,8 @@
 # 🔥 AURA
 Augmented Reality Understanding Assistant.
 
-![AURA Architecture](./docs/assets/aura_system_architecture_infographic.png)
+<img width="1104" height="451" alt="Screenshot 2026-04-26 074037" src="https://github.com/user-attachments/assets/fdd7d477-f866-4287-b7fc-5d3f1a7ca9f2" />
+
 
 AURA turns your phone camera into a spatial action layer for the physical world.
 
