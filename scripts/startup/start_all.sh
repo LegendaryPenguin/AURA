@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+# Startup logging behavior:
+# - Default (quiet): readiness heartbeats + sparse diagnostics.
+# - Stream mode: set AURA_STREAM_STARTUP_LOGS=1 to follow service logs in real time.
+# Note: dockerized vLLM logs can still appear in bursts depending on runtime buffering.
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ARTIFACT_DIR="${AURA_STACK_ARTIFACT_DIR:-${ROOT_DIR}/artifacts}"
 
@@ -15,7 +20,7 @@ VLLM_HEALTH_URL="${AURA_VLLM_HEALTH_URL:-http://127.0.0.1:8000/health}"
 SAM2_HEALTH_URL="${AURA_SAM2_HEALTH_URL:-http://127.0.0.1:8001/health}"
 VLLM_STARTUP_TIMEOUT_SECONDS="${AURA_VLLM_STARTUP_TIMEOUT_SECONDS:-900}"
 VLM_HTTP_TIMEOUT_MS="${AURA_VLM_TIMEOUT_MS:-60000}"
-VLM_MODEL_ID="${AURA_VLM_MODEL_ID:-Qwen/Qwen2.5-VL-7B-Instruct}"
+VLM_MODEL_ID="${AURA_VLM_MODEL_ID:-/models/qwen2_5_vl_7b}"
 VLM_TARGET_DIM="${AURA_VLM_TARGET_DIM:-512}"
 VLM_MAX_TOKENS="${AURA_VLM_MAX_TOKENS:-220}"
 FRONTEND_HEALTH_URL="${AURA_FRONTEND_HEALTH_URL:-http://127.0.0.1:${FRONTEND_PORT}}"
@@ -26,6 +31,10 @@ FRONTEND_LOG="${AURA_FRONTEND_LOG:-${ARTIFACT_DIR}/frontend.log}"
 BACKEND_LOG="${AURA_BACKEND_LOG:-${ARTIFACT_DIR}/backend.log}"
 VLLM_LOG="${AURA_VLLM_LOG:-${ARTIFACT_DIR}/vllm.log}"
 SAM2_LOG="${AURA_SAM2_LOG:-${ARTIFACT_DIR}/sam2.log}"
+STREAM_STARTUP_LOGS="${AURA_STREAM_STARTUP_LOGS:-0}"
+STARTUP_HEARTBEAT_SECONDS="${AURA_STARTUP_HEARTBEAT_SECONDS:-5}"
+STALL_LOG_DIGEST_SECONDS="${AURA_STALL_LOG_DIGEST_SECONDS:-20}"
+STALL_LOG_DIGEST_LINES="${AURA_STALL_LOG_DIGEST_LINES:-25}"
 
 FRONTEND_PID=""
 BACKEND_PID=""
@@ -33,6 +42,7 @@ VLLM_PID=""
 SAM2_PID=""
 TUNNEL_PID=""
 FRONTEND_EXTERNAL="0"
+LOG_TAIL_PIDS=()
 
 mkdir -p "${ARTIFACT_DIR}"
 
@@ -51,7 +61,8 @@ wait_for_url() {
   local log_file="${4:-}"
   local watched_pid="${5:-}"
   local elapsed=0
-  local next_log_at=3
+  local next_log_at="${STARTUP_HEARTBEAT_SECONDS}"
+  local digest_printed=0
 
   echo "Waiting for ${name} at ${url} (timeout ${timeout}s)..."
   while (( elapsed < timeout )); do
@@ -71,12 +82,14 @@ wait_for_url() {
 
     if (( elapsed == 0 || elapsed >= next_log_at )); then
       echo "  ...${name} not ready yet (${elapsed}s/${timeout}s)"
-      if [[ -n "${log_file}" && -f "${log_file}" ]]; then
-        echo "  --- recent ${name} log ---"
-        tail -n 8 "${log_file}" 2>/dev/null || true
-        echo "  --- end log ---"
-      fi
-      next_log_at=$((next_log_at + 5))
+      next_log_at=$((next_log_at + STARTUP_HEARTBEAT_SECONDS))
+    fi
+
+    if (( digest_printed == 0 && elapsed >= STALL_LOG_DIGEST_SECONDS )) && [[ -n "${log_file}" && -f "${log_file}" ]]; then
+      echo "  --- ${name} still starting; recent log snapshot ---"
+      tail -n "${STALL_LOG_DIGEST_LINES}" "${log_file}" 2>/dev/null || true
+      echo "  --- end snapshot (${log_file}) ---"
+      digest_printed=1
     fi
     sleep 1
     elapsed=$((elapsed + 1))
@@ -90,7 +103,36 @@ wait_for_url() {
   return 1
 }
 
+stream_logs_enabled() {
+  case "${STREAM_STARTUP_LOGS}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+start_log_stream() {
+  local prefix="$1"
+  local log_file="$2"
+
+  if ! stream_logs_enabled; then
+    return 0
+  fi
+
+  touch "${log_file}"
+  (
+    tail -n 0 -F "${log_file}" 2>/dev/null | while IFS= read -r line; do
+      printf '[%s] %s\n' "${prefix}" "${line}"
+    done
+  ) &
+  LOG_TAIL_PIDS+=("$!")
+}
+
 cleanup() {
+  for pid in "${LOG_TAIL_PIDS[@]}"; do
+    if [[ -n "${pid}" ]] && kill -0 "${pid}" >/dev/null 2>&1; then
+      kill "${pid}" >/dev/null 2>&1 || true
+    fi
+  done
   for pid in "${TUNNEL_PID}" "${BACKEND_PID}" "${SAM2_PID}" "${VLLM_PID}" "${FRONTEND_PID}"; do
     if [[ -n "${pid}" ]] && kill -0 "${pid}" >/dev/null 2>&1; then
       kill "${pid}" >/dev/null 2>&1 || true
@@ -98,8 +140,20 @@ cleanup() {
   done
 }
 
+cleanup_on_interrupt() {
+  if [[ -n "${TUNNEL_PID}" ]] && kill -0 "${TUNNEL_PID}" >/dev/null 2>&1; then
+    kill "${TUNNEL_PID}" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "${FRONTEND_PID}" ]] && kill -0 "${FRONTEND_PID}" >/dev/null 2>&1; then
+    kill "${FRONTEND_PID}" >/dev/null 2>&1 || true
+  fi
+  echo "Stopped orchestrator/tunnel. Backend services remain running."
+}
+
 forward_term() {
-  cleanup
+  cleanup_on_interrupt
+  trap - EXIT
+  exit 0
 }
 
 start_frontend() {
@@ -111,6 +165,7 @@ start_frontend() {
   fi
 
   echo "Starting frontend on ${FRONTEND_HOST}:${FRONTEND_PORT} ..."
+  : > "${FRONTEND_LOG}"
   (
     cd "${ROOT_DIR}/client"
     export VITE_API_TARGET_REAL="${VITE_API_TARGET_REAL:-http://localhost:${REAL_BACKEND_PORT}}"
@@ -118,6 +173,7 @@ start_frontend() {
     npm run dev -- --host "${FRONTEND_HOST}" --port "${FRONTEND_PORT}" --strictPort
   ) >"${FRONTEND_LOG}" 2>&1 &
   FRONTEND_PID="$!"
+  start_log_stream "frontend" "${FRONTEND_LOG}"
   wait_for_url "Frontend" "${FRONTEND_HEALTH_URL}" 35 "${FRONTEND_LOG}"
 }
 
@@ -127,11 +183,14 @@ start_backend() {
       echo "vLLM already running at ${VLLM_HEALTH_URL}; reusing existing process."
     else
       echo "Starting vLLM service on :8000 ..."
+      : > "${VLLM_LOG}"
       (
         cd "${ROOT_DIR}"
-        VLLM_MODEL_ID="${VLM_MODEL_ID}" HF_MODEL_HANDLE="${VLM_MODEL_ID}" bash scripts/startup/start_vllm.sh
+        export PYTHONUNBUFFERED=1
+        VLLM_MODEL_ID="${VLM_MODEL_ID}" VLLM_MODEL_DIR="${ROOT_DIR}/models/qwen2_5_vl_7b" HF_MODEL_HANDLE="${VLM_MODEL_ID}" bash scripts/startup/start_vllm.sh
       ) >"${VLLM_LOG}" 2>&1 &
       VLLM_PID="$!"
+      start_log_stream "vllm" "${VLLM_LOG}"
       wait_for_url "vLLM" "${VLLM_HEALTH_URL}" "${VLLM_STARTUP_TIMEOUT_SECONDS}" "${VLLM_LOG}" "${VLLM_PID}"
     fi
 
@@ -139,11 +198,14 @@ start_backend() {
       echo "SAM2 service already running at ${SAM2_HEALTH_URL}; reusing existing process."
     else
       echo "Starting SAM2 service on :8001 ..."
+      : > "${SAM2_LOG}"
       (
         cd "${ROOT_DIR}"
+        export PYTHONUNBUFFERED=1
         bash scripts/startup/start_sam2_service.sh
       ) >"${SAM2_LOG}" 2>&1 &
       SAM2_PID="$!"
+      start_log_stream "sam2" "${SAM2_LOG}"
       wait_for_url "SAM2 service" "${SAM2_HEALTH_URL}" 35 "${SAM2_LOG}" "${SAM2_PID}"
     fi
   }
@@ -154,14 +216,17 @@ start_backend() {
     BACKEND_PID=""
   else
     echo "Starting real backend on :${REAL_BACKEND_PORT} ..."
+    : > "${BACKEND_LOG}"
     (
       cd "${ROOT_DIR}"
+      export PYTHONUNBUFFERED=1
       AURA_ENABLE_PUBLIC_LINK=0 AURA_DISABLE_SSL=1 AURA_PORT="${REAL_BACKEND_PORT}" \
       AURA_VLM_TIMEOUT_MS="${VLM_HTTP_TIMEOUT_MS}" AURA_VLM_MODEL_ID="${VLM_MODEL_ID}" \
       AURA_VLM_TARGET_DIM="${VLM_TARGET_DIM}" AURA_VLM_MAX_TOKENS="${VLM_MAX_TOKENS}" \
       bash scripts/startup/start_server.sh
     ) >"${BACKEND_LOG}" 2>&1 &
     BACKEND_PID="$!"
+    start_log_stream "backend" "${BACKEND_LOG}"
     wait_for_url "Real backend" "${BACKEND_HEALTH_URL_REAL}" 45 "${BACKEND_LOG}"
   fi
 }

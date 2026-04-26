@@ -32,6 +32,7 @@ python pipeline/run_pipeline.py --image inputs/handwritten.png --preview
 ```
 `--style paper_clean` is the default and produces direct on-paper cover-and-rewrite correction.
 Use `--style paper_3b1b` for a cleaner math-first motion/tint profile inspired by 3Blue1Brown pacing.
+Use `--style side_by_side_blueprint` for a deterministic dark-blue side-by-side tutoring layout (reconstructed steps + overlay lane).
 
 Staged mode is local-model-first and requires a local OpenAI-compatible VLM endpoint.
 Set:

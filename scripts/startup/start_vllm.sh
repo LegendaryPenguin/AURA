@@ -53,6 +53,11 @@ if [[ "${RUNTIME}" == "docker" ]]; then
   docker_cmd pull "${VLLM_IMAGE}"
   docker_cmd rm -f "${VLLM_CONTAINER_NAME}" >/dev/null 2>&1 || true
 
+  model_target="${HF_MODEL_HANDLE}"
+  if [[ -d "${MODEL_DIR}" ]]; then
+    model_target="/models/$(basename "${MODEL_DIR}")"
+  fi
+
   run_args=(
     run --rm --name "${VLLM_CONTAINER_NAME}" --gpus all
     --ipc=host
@@ -62,6 +67,7 @@ if [[ "${RUNTIME}" == "docker" ]]; then
     -e "HF_MODEL_HANDLE=${HF_MODEL_HANDLE}"
     -e "VLLM_USE_V1=1"
     -v "${HF_CACHE_DIR}:/root/.cache/huggingface"
+    -v "${ROOT_DIR}/models:/models"
   )
 
   if [[ -n "${HF_TOKEN:-}" ]]; then
@@ -71,7 +77,7 @@ if [[ "${RUNTIME}" == "docker" ]]; then
     run_args+=(-e "HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}")
   fi
 
-  run_args+=("${VLLM_IMAGE}" vllm serve "${HF_MODEL_HANDLE}" --host 0.0.0.0 --port 8000 --max-model-len "${MAX_MODEL_LEN}")
+  run_args+=("${VLLM_IMAGE}" vllm serve "${model_target}" --host 0.0.0.0 --port 8000 --max-model-len "${MAX_MODEL_LEN}")
   if [[ -n "${VLLM_EXTRA_ARGS}" ]]; then
     # Allow runtime tuning without script edits, e.g.:
     # VLLM_EXTRA_ARGS="--enforce-eager --gpu-memory-utilization 0.85"
@@ -79,7 +85,7 @@ if [[ "${RUNTIME}" == "docker" ]]; then
     extra_args=( ${VLLM_EXTRA_ARGS} )
     run_args+=("${extra_args[@]}")
   fi
-  echo "Starting vLLM container ${VLLM_CONTAINER_NAME} on ${HOST}:${PORT} with model ${HF_MODEL_HANDLE}"
+  echo "Starting vLLM container ${VLLM_CONTAINER_NAME} on ${HOST}:${PORT} with model ${model_target}"
   docker_cmd "${run_args[@]}"
   exit 0
 fi
