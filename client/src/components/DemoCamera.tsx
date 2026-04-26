@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DemoOverlayRenderer } from "./DemoOverlayRenderer";
-import { FREE_SCAN_COPY, MATH_BASELINE_COPY, type DemoScenario, type DemoScenarioId } from "../data/demoScenarios";
+import type { DemoScenario, DemoScenarioId } from "../data/demoScenarios";
 import { detectScenarioFromCapture } from "../utils/sceneMatcher";
 
 interface DemoCameraProps {
@@ -14,11 +14,10 @@ interface DemoCameraProps {
 }
 
 const scenarioButtons: Array<{ id: DemoScenarioId; label: string }> = [
-  { id: "math", label: "Math Baseline" },
-  { id: "care", label: "Care Safety Scan" },
-  { id: "sustainability", label: "Sustainability Audit" },
-  { id: "wayfinding", label: "Wayfinding Assistant" },
-  { id: "free", label: "Free Scan" },
+  { id: "math", label: "Inform" },
+  { id: "care", label: "Simulate" },
+  { id: "sustainability", label: "Monitor" },
+  { id: "wayfinding", label: "Guide" },
 ];
 
 export function DemoCamera({
@@ -60,7 +59,12 @@ export function DemoCamera({
         }
         setCameraReady(true);
       } catch (err) {
-        setError((err as Error).message || "Unable to open camera");
+        const message = (err as Error).message || "Unable to open camera";
+        if (message.toLowerCase().includes("aborted")) {
+          setError(null);
+          return;
+        }
+        setError(message);
         setCameraReady(false);
       }
     };
@@ -90,6 +94,10 @@ export function DemoCamera({
     }, 480);
     return () => window.clearInterval(interval);
   }, [analyzeSteps.length, isAnalyzing]);
+
+  useEffect(() => {
+    setError(null);
+  }, [scenarioId, showLockedResult]);
 
   const captureFromGuide = (): string | null => {
     const video = videoRef.current;
@@ -152,7 +160,7 @@ export function DemoCamera({
     }
 
     try {
-      if (scenarioId === "free" || scenarioId === "math") {
+      if (scenarioId === "math") {
         onCaptureComplete(captureDataUrl, "result", scenarioId);
         return;
       }
@@ -166,7 +174,12 @@ export function DemoCamera({
         onCaptureComplete(captureDataUrl, "locked", resolvedScenarioId);
       }, 4000);
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message || "Capture failed. Try again.";
+      if (message.toLowerCase().includes("aborted")) {
+        setError(null);
+        return;
+      }
+      setError(message);
     }
   };
 
@@ -175,11 +188,17 @@ export function DemoCamera({
       <div className="camera-stage fullscreen-camera">
         <video ref={videoRef} muted playsInline className="camera-feed" />
         <div ref={guideRef} className="guide-43" aria-hidden="true">
-          <div className="guide-label">4:3 alignment guide</div>
           {showLockedResult && scenario && lockedCaptureDataUrl ? (
             <div className="locked-guide-result">
               <img className="locked-guide-image" src={lockedCaptureDataUrl} alt="Captured guide frame" />
-              <DemoOverlayRenderer overlays={scenario.overlays} paths={scenario.paths} scenarioId={scenarioId} />
+              <DemoOverlayRenderer
+                overlays={scenario.overlays}
+                paths={scenario.paths}
+                scenarioId={scenarioId}
+                variant="locked"
+                monitorRoutes={scenario.monitorRoutes}
+                monitorDestinations={scenario.monitorDestinations}
+              />
             </div>
           ) : null}
         </div>
@@ -206,18 +225,7 @@ export function DemoCamera({
             ))}
           </div>
 
-          <div className="camera-topbar overlay-topbar">
-            <div>
-              <h2>{scenario?.title ?? (scenarioId === "math" ? MATH_BASELINE_COPY.title : FREE_SCAN_COPY.title)}</h2>
-              <p>
-                {scenarioId === "free"
-                  ? "Capture any scene. This mode does not project deterministic overlays."
-                  : scenarioId === "math"
-                    ? "Original capture-first flow. Use scenario buttons only when you want overlays."
-                    : "Point your phone at the matching scene image and fill the guide."}
-              </p>
-            </div>
-          </div>
+          {/* Top instructional copy removed to keep UI clean behind mode buttons. */}
 
           <div className="camera-actions overlay-actions">
             {showLockedResult && scenario ? (
@@ -231,7 +239,7 @@ export function DemoCamera({
               </>
             ) : (
               <button type="button" className="primary-btn" onClick={handleCapture} disabled={!cameraReady || isAnalyzing}>
-                {scenarioId === "free" || scenarioId === "math" ? "Capture Photo" : "Capture & Analyze"}
+                {scenarioId === "math" ? "Capture Photo" : "Capture & Analyze"}
               </button>
             )}
           </div>

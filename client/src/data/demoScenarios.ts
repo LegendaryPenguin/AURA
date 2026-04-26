@@ -5,6 +5,9 @@ export type OverlaySeverity = "High" | "Medium" | "Low" | "Positive" | "Route";
 export interface OverlayBox {
   id: string;
   label: string;
+  compactLabel?: string;
+  markerX?: number;
+  markerY?: number;
   confidence: number;
   severity: OverlaySeverity;
   x: number;
@@ -22,6 +25,17 @@ export interface OverlayPath {
   points: Array<{ x: number; y: number }>;
 }
 
+export type MonitorRouteTarget = "recycle" | "trash";
+
+export interface MonitorRouteItem {
+  id: string;
+  overlayId: string;
+  label: string;
+  target: MonitorRouteTarget;
+  destination: { x: number; y: number };
+  points?: Array<{ x: number; y: number }>;
+}
+
 export interface DemoScenario {
   id: DemoScenarioId;
   title: string;
@@ -37,6 +51,14 @@ export interface DemoScenario {
   referenceImagePath?: string;
   overlays: OverlayBox[];
   paths?: OverlayPath[];
+  monitorRoutes?: MonitorRouteItem[];
+  monitorDestinations?: Array<{
+    id: string;
+    label: string;
+    target: MonitorRouteTarget;
+    x: number;
+    y: number;
+  }>;
 }
 
 export const DEMO_SCENARIOS: Record<Exclude<DemoScenarioId, "free" | "math">, DemoScenario> = {
@@ -45,39 +67,35 @@ export const DEMO_SCENARIOS: Record<Exclude<DemoScenarioId, "free" | "math">, De
     title: "Care Safety Scan",
     subtitle: "Medication and caregiver safety workflow.",
     description: "Point your phone at the care scene and capture to project deterministic AURA overlays.",
-    summary: "AURA detected a medication safety workflow.",
+    summary: "AURA surfaced medication, hydration, and reminder readiness cues.",
     runtimeBadge: "Local demo mode",
     actionAgent: "CareAgent",
-    actionText: "Verify dosage before use.",
+    actionText: "Confirm dosage details before taking medicine.",
     handoffText: "Prepare caregiver notification if unresolved.",
     badges: ["Catalyst for Care", "Social Impact", "Edge AI"],
     referenceImagePath: "/demo-scenes/medical1.png",
     overlays: [
       {
         id: "med-bottle",
-        label: "Verify dosage before taking",
+        label: "Daily dosage: 1x Metformin, 2x Aspirin",
+        compactLabel: "Daily dosage",
+        markerX: 0.08,
+        markerY: 0.46,
         confidence: 96,
         severity: "High",
-        x: 0.46,
-        y: 0.36,
-        width: 0.12,
-        height: 0.26,
-      },
-      {
-        id: "pill-org",
-        label: "Missed dose risk",
-        confidence: 93,
-        severity: "High",
-        x: 0.18,
-        y: 0.56,
-        width: 0.34,
-        height: 0.22,
+        x: 0.38,
+        y: 0.37,
+        width: 0.08,
+        height: 0.2,
       },
       {
         id: "water",
-        label: "Hydration reminder",
+        label: "Water: 80% full",
+        compactLabel: "Water 80% full",
+        markerX: 0.84,
+        markerY: 0.42,
         confidence: 89,
-        severity: "Medium",
+        severity: "Positive",
         x: 0.62,
         y: 0.28,
         width: 0.13,
@@ -85,24 +103,16 @@ export const DEMO_SCENARIOS: Record<Exclude<DemoScenarioId, "free" | "math">, De
       },
       {
         id: "phone",
-        label: "Caregiver alert available",
+        label: "Reminder: Set alarm for 7:00",
+        compactLabel: "Reminder: Set alarm for 7:00",
+        markerX: 0.82,
+        markerY: 0.68,
         confidence: 87,
-        severity: "Medium",
+        severity: "Positive",
         x: 0.58,
         y: 0.63,
         width: 0.18,
         height: 0.2,
-        chip: "handoff available",
-      },
-      {
-        id: "notepad",
-        label: "Check written instructions",
-        confidence: 82,
-        severity: "Low",
-        x: 0.08,
-        y: 0.34,
-        width: 0.2,
-        height: 0.16,
       },
     ],
   },
@@ -121,55 +131,88 @@ export const DEMO_SCENARIOS: Record<Exclude<DemoScenarioId, "free" | "math">, De
     referenceImagePath: "/demo-scenes/sustainability2.png",
     overlays: [
       {
-        id: "power-strip",
-        label: "Idle energy draw detected",
-        confidence: 94,
-        severity: "High",
-        x: 0.52,
-        y: 0.63,
-        width: 0.3,
-        height: 0.17,
-      },
-      {
-        id: "food-container",
-        label: "Compost or dispose properly",
-        confidence: 91,
+        id: "drink-cup",
+        label: "Drink cup",
+        compactLabel: "Drink cup",
+        markerX: 0.24,
+        markerY: 0.55,
+        confidence: 93,
         severity: "Medium",
-        x: 0.2,
-        y: 0.55,
-        width: 0.18,
-        height: 0.18,
-      },
-      {
-        id: "plastic-cup",
-        label: "Recycle or reuse",
-        confidence: 88,
-        severity: "Medium",
-        x: 0.43,
-        y: 0.42,
+        x: 0.18,
+        y: 0.45,
         width: 0.11,
-        height: 0.21,
+        height: 0.19,
       },
       {
-        id: "lamp",
-        label: "Turn off when leaving",
-        confidence: 84,
-        severity: "Low",
-        x: 0.72,
-        y: 0.18,
-        width: 0.16,
-        height: 0.34,
+        id: "food-tray",
+        label: "Food tray",
+        compactLabel: "Food tray",
+        markerX: 0.42,
+        markerY: 0.64,
+        confidence: 92,
+        severity: "Medium",
+        x: 0.28,
+        y: 0.56,
+        width: 0.24,
+        height: 0.15,
       },
       {
-        id: "recycling-bin",
-        label: "Correct disposal route",
-        confidence: 97,
-        severity: "Positive",
-        x: 0.07,
-        y: 0.52,
-        width: 0.14,
-        height: 0.31,
+        id: "bottle",
+        label: "Bottle",
+        compactLabel: "Bottle",
+        markerX: 0.58,
+        markerY: 0.42,
+        confidence: 89,
+        severity: "Medium",
+        x: 0.52,
+        y: 0.3,
+        width: 0.1,
+        height: 0.24,
       },
+    ],
+    monitorRoutes: [
+      {
+        id: "cup-recycle",
+        overlayId: "drink-cup",
+        label: "Drink cup",
+        target: "recycle",
+        destination: { x: 0.19, y: 0.71 },
+        points: [
+          { x: 0.24, y: 0.55 },
+          { x: 0.22, y: 0.44 },
+          { x: 0.2, y: 0.3 },
+        ],
+      },
+      {
+        id: "tray-trash",
+        overlayId: "food-tray",
+        label: "Food tray",
+        target: "trash",
+        destination: { x: 0.84, y: 0.58 },
+        points: [
+          { x: 0.41, y: 0.56 },
+          { x: 0.6, y: 0.48 },
+          { x: 0.74, y: 0.62 },
+          { x: 0.86, y: 0.8 },
+        ],
+      },
+      {
+        id: "bottle-recycle",
+        overlayId: "bottle",
+        label: "Bottle",
+        target: "recycle",
+        destination: { x: 0.56, y: 0.33 },
+        points: [
+          { x: 0.57, y: 0.42 },
+          { x: 0.54, y: 0.39 },
+          { x: 0.5, y: 0.4 },
+          { x: 0.47, y: 0.41 },
+        ],
+      },
+    ],
+    monitorDestinations: [
+      { id: "dest-recycle", label: "Recycle", target: "recycle", x: 0.19, y: 0.71 },
+      { id: "dest-trash", label: "Trash", target: "trash", x: 0.74, y: 0.72 },
     ],
   },
   wayfinding: {

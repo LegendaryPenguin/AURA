@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { DemoOverlayRenderer } from "./DemoOverlayRenderer";
 import { FREE_SCAN_COPY, MATH_BASELINE_COPY, type DemoScenario, type DemoScenarioId } from "../data/demoScenarios";
 import { createVideoSimJob, getVideoSimJob, getVideoSimVideoUrl } from "../services/api";
@@ -11,34 +11,97 @@ interface DemoResultProps {
 }
 
 export function DemoResult({ scenarioId, scenario, capturedDataUrl, onBackToHome }: DemoResultProps) {
+  const mathBackgroundVideoRef = useRef<HTMLVideoElement | null>(null);
+  const mathBackgroundStreamRef = useRef<MediaStream | null>(null);
+  const mathGenerationStartRef = useRef<number>(0);
   const [useReferenceImage, setUseReferenceImage] = useState(false);
   const [referenceBroken, setReferenceBroken] = useState(false);
   const [mathJobStatus, setMathJobStatus] = useState<"idle" | "queued" | "running" | "done" | "error">("idle");
   const [mathStatusMessage, setMathStatusMessage] = useState("Ready to generate video.");
   const [mathVideoUrl, setMathVideoUrl] = useState("");
+  const [mathVideoVisible, setMathVideoVisible] = useState(false);
+  const [mathBackgroundLive, setMathBackgroundLive] = useState(false);
+  const [mathArReleased, setMathArReleased] = useState(false);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
-  const isFreeScan = scenarioId === "free" || scenarioId === "math";
+  const isMath = scenarioId === "math";
+  const isFreeScan = scenarioId === "free";
   const overlayCount = scenario?.overlays.length ?? 0;
   const backupMathVideoUrl = "/videos/tutorial_animation_20260426_002557.mp4";
 
   useEffect(() => {
-    if (scenarioId !== "math") {
+    if (!isMath) {
       return;
     }
     setMathJobStatus("idle");
     setMathStatusMessage("Ready to generate video.");
     setMathVideoUrl("");
-  }, [scenarioId, capturedDataUrl]);
+    setMathVideoVisible(false);
+    setMathArReleased(false);
+  }, [isMath, capturedDataUrl]);
+
+  useEffect(() => {
+    if (!isMath || mathJobStatus !== "idle") {
+      return;
+    }
+    void runMathGeneration();
+    // Intentionally depends on status + scenario only to auto-run once per capture reset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMath, mathJobStatus]);
+
+  useEffect(() => {
+    if (!isMath || mathArReleased) {
+      setMathBackgroundLive(false);
+      if (mathBackgroundVideoRef.current) {
+        mathBackgroundVideoRef.current.pause();
+        mathBackgroundVideoRef.current.srcObject = null;
+      }
+      if (mathBackgroundStreamRef.current) {
+        mathBackgroundStreamRef.current.getTracks().forEach((track) => track.stop());
+        mathBackgroundStreamRef.current = null;
+      }
+      return;
+    }
+
+    const startBackgroundCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        mathBackgroundStreamRef.current = stream;
+        if (mathBackgroundVideoRef.current) {
+          mathBackgroundVideoRef.current.srcObject = stream;
+          await mathBackgroundVideoRef.current.play();
+          setMathBackgroundLive(true);
+        }
+      } catch {
+        setMathBackgroundLive(false);
+      }
+    };
+
+    void startBackgroundCamera();
+
+    return () => {
+      if (mathBackgroundVideoRef.current) {
+        mathBackgroundVideoRef.current.pause();
+        mathBackgroundVideoRef.current.srcObject = null;
+      }
+      if (mathBackgroundStreamRef.current) {
+        mathBackgroundStreamRef.current.getTracks().forEach((track) => track.stop());
+        mathBackgroundStreamRef.current = null;
+      }
+    };
+  }, [isMath, mathArReleased]);
 
   const backgroundImage = useMemo(() => {
-    if (!isFreeScan && useReferenceImage && scenario?.referenceImagePath && !referenceBroken) {
+    if (!isMath && !isFreeScan && useReferenceImage && scenario?.referenceImagePath && !referenceBroken) {
       return scenario.referenceImagePath;
     }
     return capturedDataUrl;
-  }, [capturedDataUrl, isFreeScan, referenceBroken, scenario?.referenceImagePath, useReferenceImage]);
+  }, [capturedDataUrl, isMath, isFreeScan, referenceBroken, scenario?.referenceImagePath, useReferenceImage]);
 
   const handleParallaxMove = (clientX: number, clientY: number, stage: HTMLDivElement | null) => {
-    if (!stage || isFreeScan) {
+    if (!stage || isFreeScan || isMath) {
       return;
     }
     const rect = stage.getBoundingClientRect();
@@ -62,6 +125,20 @@ export function DemoResult({ scenarioId, scenario, capturedDataUrl, onBackToHome
     if (mathJobStatus === "queued" || mathJobStatus === "running") {
       return;
     }
+    const minVideoRevealMs = 4500;
+    mathGenerationStartRef.current = Date.now();
+    const finalizeMathVideo = async (videoUrl: string, message: string) => {
+      const elapsed = Date.now() - mathGenerationStartRef.current;
+      const remaining = Math.max(0, minVideoRevealMs - elapsed);
+      if (remaining > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, remaining));
+      }
+      setMathVideoVisible(false);
+      setMathVideoUrl(videoUrl);
+      setMathJobStatus("done");
+      setMathStatusMessage(message);
+    };
+
     setMathVideoUrl(backupMathVideoUrl);
     setMathJobStatus("queued");
     setMathStatusMessage("Uploading photo...");
@@ -82,26 +159,21 @@ export function DemoResult({ scenarioId, scenario, capturedDataUrl, onBackToHome
           setMathStatusMessage(state.message);
         }
         if (state.status === "done") {
-          setMathVideoUrl(getVideoSimVideoUrl(jobId));
-          setMathJobStatus("done");
-          setMathStatusMessage("video_ready");
+          await finalizeMathVideo(getVideoSimVideoUrl(jobId), "video_ready");
           return;
         }
         if (state.status === "error") {
-          setMathVideoUrl(backupMathVideoUrl);
-          setMathJobStatus("done");
-          setMathStatusMessage(state.error || state.message || "Generation failed. Using backup video.");
+          await finalizeMathVideo(
+            backupMathVideoUrl,
+            state.error || state.message || "Generation failed. Using backup video.",
+          );
           return;
         }
         attempts += 1;
       }
-      setMathVideoUrl(backupMathVideoUrl);
-      setMathJobStatus("done");
-      setMathStatusMessage("Generation timed out. Using backup video.");
+      await finalizeMathVideo(backupMathVideoUrl, "Generation timed out. Using backup video.");
     } catch (error) {
-      setMathVideoUrl(backupMathVideoUrl);
-      setMathJobStatus("done");
-      setMathStatusMessage((error as Error).message || "Generation failed. Using backup video.");
+      await finalizeMathVideo(backupMathVideoUrl, (error as Error).message || "Generation failed. Using backup video.");
     }
   };
 
@@ -119,48 +191,41 @@ export function DemoResult({ scenarioId, scenario, capturedDataUrl, onBackToHome
         }}
         onTouchEnd={() => setParallax({ x: 0, y: 0 })}
       >
-        {scenarioId === "math" ? (
-          <div className="math-split-overlay">
+        {isMath ? (
+          <>
+            {!mathArReleased ? <video ref={mathBackgroundVideoRef} className="math-live-bg" muted playsInline /> : null}
+            {!mathBackgroundLive || mathArReleased ? <img className="result-image" src={capturedDataUrl} alt="Captured scene" /> : null}
+          </>
+        ) : (
+          <img className="result-image" src={backgroundImage} alt="Captured scene" />
+        )}
+        {isMath ? (
+          <div className="math-video-overlay">
             <div className="math-pane">
-              <p className="math-pane-title">Captured Frame</p>
-              <img className="result-image" src={capturedDataUrl} alt="Captured scene" />
-            </div>
-            <div className="math-pane">
-              <p className="math-pane-title">Tutor Video Render</p>
-              {mathJobStatus !== "done" ? (
-                <div className="math-processing stacked">
-                  <p className={mathJobStatus !== "idle" ? "done" : ""}>Snapshot received.</p>
-                  <p className={mathJobStatus === "running" ? "done" : ""}>Transcribing and correcting steps.</p>
-                  <p>Rendering tutorial scene.</p>
-                  <button type="button" className="primary-btn math-generate-btn" onClick={runMathGeneration}>
-                    {mathJobStatus === "idle" || mathJobStatus === "error"
-                      ? "Generate video"
-                      : "Generating..."}
-                  </button>
-                  <p className="math-status">Status: {mathStatusMessage}</p>
-                </div>
-              ) : (
+              {mathJobStatus === "done" ? (
                 <video
-                  className="math-video"
+                  className={`math-video ${mathVideoVisible ? "visible" : ""}`}
                   src={mathVideoUrl}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  controls
+                  disablePictureInPicture
+                  controlsList="nodownload noplaybackrate noremoteplayback"
+                  onLoadedData={() => setMathVideoVisible(true)}
                   onError={() => {
                     setMathJobStatus("done");
                     setMathStatusMessage("Generated video unavailable. Using backup video.");
                     setMathVideoUrl(backupMathVideoUrl);
+                    setMathVideoVisible(false);
                   }}
                 />
-              )}
+              ) : null}
+              {!mathVideoVisible ? <div className="math-processing minimal" aria-label="Generating tutor video" /> : null}
             </div>
           </div>
-        ) : (
-          <img className="result-image" src={backgroundImage} alt="Captured scene" />
-        )}
-        {!isFreeScan && scenario ? (
+        ) : null}
+        {!isMath && !isFreeScan && scenario ? (
           <div
             className="result-overlay-viewport"
             style={
@@ -171,39 +236,38 @@ export function DemoResult({ scenarioId, scenario, capturedDataUrl, onBackToHome
             }
           >
             <div className={`ar-field ar-field-${scenarioId}`} aria-hidden="true" />
-            <DemoOverlayRenderer overlays={scenario.overlays} paths={scenario.paths} scenarioId={scenarioId} />
+            <DemoOverlayRenderer
+              overlays={scenario.overlays}
+              paths={scenario.paths}
+              scenarioId={scenarioId}
+              monitorRoutes={scenario.monitorRoutes}
+              monitorDestinations={scenario.monitorDestinations}
+            />
           </div>
         ) : null}
-        <div className="result-scanline" aria-hidden="true" />
-        <div className="result-top-panel overlay-panel">
-          <h2>{scenario?.title ?? (scenarioId === "math" ? MATH_BASELINE_COPY.title : FREE_SCAN_COPY.title)}</h2>
-          <p>{scenario?.summary ?? (scenarioId === "math" ? MATH_BASELINE_COPY.neutralMessage : FREE_SCAN_COPY.neutralMessage)}</p>
-          <div className="chips">
-            <span className="chip">Local demo mode</span>
-            <span className="chip">Overlays: {overlayCount}</span>
-            {scenario?.impactScore ? <span className="chip">Impact Score: {scenario.impactScore}</span> : null}
+        <div className={`result-scanline ${scenarioId === "sustainability" ? "monitor-soft" : ""}`} aria-hidden="true" />
+        {!isMath ? (
+          <div className="result-top-panel overlay-panel">
+            <h2>{scenario?.title ?? FREE_SCAN_COPY.title}</h2>
+            <p>{scenario?.summary ?? FREE_SCAN_COPY.neutralMessage}</p>
+            <div className="chips">
+              <span className="chip">Local demo mode</span>
+              <span className="chip">Overlays: {overlayCount}</span>
+              {scenario?.impactScore ? <span className="chip">Impact Score: {scenario.impactScore}</span> : null}
+            </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="status-log overlay-panel status-floating">
-          {scenarioId === "math" ? (
-            <>
-              <p>[AURA-MATH] Snapshot received.</p>
-              <p>[AURA-MATH] Job status: {mathJobStatus}.</p>
-              <p>[AURA-MATH] {mathStatusMessage}</p>
-              <p>[AURA-MATH] Output: {mathJobStatus === "done" ? "backup video ready" : "pending"}.</p>
-            </>
-          ) : (
-            <>
-              <p>[AURA] Frame stabilized.</p>
-              <p>[AURA] Spatial anchors locked.</p>
-              <p>[AURA] Overlay projection complete.</p>
-            </>
-          )}
-        </div>
+        {!isMath ? (
+          <div className="status-log overlay-panel status-floating">
+            <p>[AURA] Frame stabilized.</p>
+            <p>[AURA] Spatial anchors locked.</p>
+            <p>[AURA] Overlay projection complete.</p>
+          </div>
+        ) : null}
 
-        <div className="result-bottom-panel overlay-panel">
-          {!isFreeScan && scenario ? (
+        <div className={`result-bottom-panel overlay-panel${isMath ? " math-bottom-minimal" : ""}`}>
+          {!isMath && !isFreeScan && scenario ? (
             <>
               <p className="panel-title">Action Panel • {scenario.actionAgent}</p>
               <p>{scenario.actionText}</p>
@@ -216,17 +280,32 @@ export function DemoResult({ scenarioId, scenario, capturedDataUrl, onBackToHome
                 ))}
               </div>
             </>
-          ) : (
-            <p>{scenarioId === "math" ? MATH_BASELINE_COPY.neutralMessage : FREE_SCAN_COPY.neutralMessage}</p>
+          ) : isMath ? null : (
+            <p>{FREE_SCAN_COPY.neutralMessage}</p>
           )}
-          {!isFreeScan && overlayCount === 0 ? <p>No scenario overlays selected.</p> : null}
-          <button type="button" className="primary-btn" onClick={onBackToHome}>
-            Reset / Back
-          </button>
+          {!isMath && !isFreeScan && overlayCount === 0 ? <p>No scenario overlays selected.</p> : null}
+          {isMath ? (
+            <div className="math-bottom-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setMathArReleased((prev) => !prev)}
+              >
+                {mathArReleased ? "Enable AR" : "Release AR"}
+              </button>
+              <button type="button" className="primary-btn" onClick={onBackToHome}>
+                Back to Camera
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="primary-btn" onClick={onBackToHome}>
+              Reset / Back
+            </button>
+          )}
         </div>
       </div>
 
-      {!isFreeScan && scenario?.referenceImagePath ? (
+      {!isMath && !isFreeScan && scenario?.referenceImagePath ? (
         <div className="dev-tools">
           <button type="button" onClick={() => setUseReferenceImage((prev) => !prev)} className="dev-btn">
             {useReferenceImage ? "Use captured image" : "Use reference image"}
