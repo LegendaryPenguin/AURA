@@ -392,7 +392,7 @@ class QwenVLBackend(OpenAIVLMBackend):
         max_tokens: int | None = None,
     ) -> None:
         super().__init__(
-            model_id=model_id or os.getenv("AURA_VLM_MODEL_ID", "Qwen/Qwen2.5-VL-7B-Instruct"),
+            model_id=model_id or os.getenv("AURA_VLM_MODEL_ID", "Qwen/Qwen2.5-VL-3B-Instruct-AWQ"),
             endpoint=endpoint,
             timeout_ms=timeout_ms,
             max_tokens=max_tokens or int(os.getenv("AURA_VLM_MAX_TOKENS", "160")),

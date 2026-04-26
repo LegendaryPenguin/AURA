@@ -58,6 +58,7 @@ class _FakeClient:
         return _FakeResponse(
             {
                 "data": [
+                    {"id": "Qwen/Qwen2.5-VL-3B-Instruct-AWQ"},
                     {"id": "Qwen/Qwen2.5-VL-7B-Instruct"},
                     {"id": "llava-hf/llava-1.5-7b-hf"},
                 ]
