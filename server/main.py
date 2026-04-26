@@ -35,10 +35,22 @@ async def app_lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     if pipeline_cfg is not None:
         try:
+            import os
+
+            from server.core.inference.vlm.moondream_vl import MoondreamVLBackend
             from server.core.inference.vlm.qwen_vl import QwenVLBackend
 
-            backend: Any = QwenVLBackend()
-            backend.load()
+            backend_kind = os.getenv("AURA_VLM_BACKEND", "").strip().lower()
+            model_id = os.getenv("AURA_VLM_MODEL_ID", "")
+            eager_load = True
+            if backend_kind == "moondream" or "moondream" in model_id.lower():
+                backend = MoondreamVLBackend(model_id=model_id or "vikhyatk/moondream2")
+                # Moondream weight load can take minutes; defer to first request.
+                eager_load = False
+            else:
+                backend = QwenVLBackend()
+            if eager_load:
+                backend.load()
             app.state.loaded_backends = ["vlm"]
             app.state.backend_statuses["vlm"] = "ready" if backend.is_ready() else "loading"
             app.state.snapshot_pipeline = build_snapshot_pipeline(backend, pipeline_cfg)

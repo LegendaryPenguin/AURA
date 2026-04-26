@@ -77,7 +77,7 @@ if [[ "${RUNTIME}" == "docker" ]]; then
     run_args+=(-e "HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}")
   fi
 
-  run_args+=("${VLLM_IMAGE}" vllm serve "${model_target}" --host 0.0.0.0 --port 8000 --max-model-len "${MAX_MODEL_LEN}")
+  run_args+=("${VLLM_IMAGE}" vllm serve "${model_target}" --host 0.0.0.0 --port 8000 --max-model-len "${MAX_MODEL_LEN}" --served-model-name "${MODEL_ID}")
   if [[ -n "${VLLM_EXTRA_ARGS}" ]]; then
     # Allow runtime tuning without script edits, e.g.:
     # VLLM_EXTRA_ARGS="--enforce-eager --gpu-memory-utilization 0.85"
@@ -121,6 +121,7 @@ exec "${PYTHON_BIN}" -m vllm.entrypoints.openai.api_server \
   --host "${HOST}" \
   --port "${PORT}" \
   --model "${MODEL_TARGET}" \
+  --served-model-name "${MODEL_ID}" \
   --device "${DEVICE}" \
   --dtype "${DTYPE}" \
   --max-model-len "${MAX_MODEL_LEN}"

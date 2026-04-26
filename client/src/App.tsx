@@ -78,28 +78,26 @@ function resolveApiUrl(path: string): string {
 
 function PhoneCaptureApp() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [jobId, setJobId] = useState<string>("");
   const [status, setStatus] = useState<VideoSimJobStatusResponse["status"] | "idle">("idle");
-  const [statusMessage, setStatusMessage] = useState<string>("Ready to capture.");
+  const [statusMessage, setStatusMessage] = useState<string>("Point camera at your equation and tap capture.");
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [cameraReady, setCameraReady] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string>("");
+  const [captureFlash, setCaptureFlash] = useState<boolean>(false);
+  const [showOverlayVideo, setShowOverlayVideo] = useState<boolean>(false);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const overlayVideoRef = useRef<HTMLVideoElement | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-      if (cameraStreamRef.current) {
-        cameraStreamRef.current.getTracks().forEach((track) => track.stop());
-        cameraStreamRef.current = null;
-      }
-    };
-  }, [previewUrl]);
+  const statusStory = useMemo(() => {
+    if (status === "queued") return "Uploading captured frame...";
+    if (status === "running") return "Composing AR tutorial...";
+    if (status === "done") return "AR tutorial ready.";
+    if (status === "error") return statusMessage || "Generation failed.";
+    return statusMessage;
+  }, [status, statusMessage]);
 
   useEffect(() => {
     if (!jobId || status === "done" || status === "error" || status === "idle") {
@@ -119,6 +117,7 @@ function PhoneCaptureApp() {
           if (payload.status === "done") {
             const resolvedVideoUrl = resolveApiUrl(payload.video_url || `/video-sim/video/${jobId}`);
             setVideoUrl(resolvedVideoUrl);
+            setShowOverlayVideo(true);
             window.clearInterval(interval);
           } else if (payload.status === "error") {
             setStatusMessage(payload.error || payload.message || "Video generation failed.");
@@ -134,6 +133,25 @@ function PhoneCaptureApp() {
     return () => window.clearInterval(interval);
   }, [jobId, status]);
 
+  useEffect(() => {
+    void startCamera();
+    return () => {
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+        cameraStreamRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!showOverlayVideo || !overlayVideoRef.current) {
+      return;
+    }
+    overlayVideoRef.current.currentTime = 0;
+    void overlayVideoRef.current.play().catch(() => undefined);
+  }, [showOverlayVideo, videoUrl]);
+
   const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null;
     setSelectedFile(nextFile);
@@ -141,10 +159,7 @@ function PhoneCaptureApp() {
     setJobId("");
     setStatus("idle");
     setStatusMessage(nextFile ? "Image selected." : "Ready to capture.");
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setPreviewUrl(nextFile ? URL.createObjectURL(nextFile) : "");
+    setShowOverlayVideo(false);
   };
 
   const startCamera = async () => {
@@ -170,11 +185,11 @@ function PhoneCaptureApp() {
     }
   };
 
-  const captureFromCamera = async () => {
+  const captureFromCamera = async (): Promise<File | null> => {
     const video = cameraVideoRef.current;
     if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) {
       setCameraError("Camera is not ready yet.");
-      return;
+      return null;
     }
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
@@ -182,39 +197,41 @@ function PhoneCaptureApp() {
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       setCameraError("Canvas unavailable for capture.");
-      return;
+      return null;
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
     if (!blob) {
       setCameraError("Could not capture image.");
-      return;
+      return null;
     }
     const capturedFile = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: "image/jpeg" });
     setSelectedFile(capturedFile);
     setVideoUrl("");
     setJobId("");
     setStatus("idle");
-    setStatusMessage("Camera image captured.");
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setPreviewUrl(URL.createObjectURL(capturedFile));
+    setStatusMessage("Captured. Starting generation...");
+    setShowOverlayVideo(false);
+    setCaptureFlash(true);
+    window.setTimeout(() => setCaptureFlash(false), 180);
+    return capturedFile;
   };
 
-  const onGenerate = async () => {
-    if (!selectedFile) {
+  const onGenerate = async (fileOverride?: File) => {
+    const sourceFile = fileOverride ?? selectedFile;
+    if (!sourceFile) {
       setStatus("error");
       setStatusMessage("Please capture a photo first.");
       return;
     }
     setIsSubmitting(true);
     setStatus("queued");
-    setStatusMessage("Uploading photo...");
+    setStatusMessage("Uploading captured frame...");
     setVideoUrl("");
+    setShowOverlayVideo(false);
     try {
       const form = new FormData();
-      form.append("image", selectedFile, selectedFile.name || "capture.jpg");
+      form.append("image", sourceFile, sourceFile.name || "capture.jpg");
       const response = await fetch(resolveApiUrl("/video-sim/capture"), {
         method: "POST",
         body: form,
@@ -226,7 +243,7 @@ function PhoneCaptureApp() {
       const payload = (await response.json()) as VideoSimCaptureCreateResponse;
       setJobId(payload.job_id);
       setStatus("running");
-      setStatusMessage("Generating video...");
+      setStatusMessage("Composing AR tutorial...");
     } catch (err) {
       setStatus("error");
       setStatusMessage(err instanceof Error ? err.message : "Request failed.");
@@ -235,45 +252,80 @@ function PhoneCaptureApp() {
     }
   };
 
+  const onPrimaryCapture = async () => {
+    if (!cameraReady || isSubmitting) {
+      return;
+    }
+    const file = await captureFromCamera();
+    if (!file) {
+      return;
+    }
+    await onGenerate(file);
+  };
+
+  const onRetake = async () => {
+    setJobId("");
+    setStatus("idle");
+    setStatusMessage("Point camera at your equation and tap capture.");
+    setShowOverlayVideo(false);
+    setVideoUrl("");
+    await startCamera();
+  };
+
   return (
-    <main style={phoneStyles.app}>
-      <section style={phoneStyles.card}>
-        <h1 style={phoneStyles.title}>Phone Capture Video Simulation</h1>
-        <p style={phoneStyles.subtitle}>Take a photo, then generate the tutorial MP4 with your capture as the original handwritten work.</p>
-        <label style={phoneStyles.fileLabel}>
-          <span>Upload image (fallback)</span>
-          <input
-            accept="image/*"
-            capture="environment"
-            onChange={onFileChange}
-            style={phoneStyles.fileInput}
-            type="file"
-          />
-        </label>
-        <div style={phoneStyles.cameraControls}>
-          <button onClick={() => void startCamera()} style={phoneStyles.secondaryButton} type="button">
-            Open camera
-          </button>
-          <button disabled={!cameraReady} onClick={() => void captureFromCamera()} style={phoneStyles.secondaryButton} type="button">
-            Capture from camera
-          </button>
+    <main style={phoneStyles.arApp}>
+      <video autoPlay muted playsInline ref={cameraVideoRef} style={phoneStyles.backgroundCamera} />
+      {captureFlash ? <div style={phoneStyles.captureFlash} /> : null}
+
+      <div style={phoneStyles.topHud}>
+        <div style={phoneStyles.titleWrap}>
+          <h1 style={phoneStyles.arTitle}>AURA AR Tutor</h1>
+          <p style={phoneStyles.arSubtitle}>{statusStory}</p>
         </div>
-        <video autoPlay muted playsInline ref={cameraVideoRef} style={phoneStyles.cameraPreview} />
-        {cameraError ? <p style={phoneStyles.cameraError}>Camera: {cameraError}</p> : null}
-        {previewUrl ? <img alt="Captured preview" src={previewUrl} style={phoneStyles.preview} /> : null}
-        <button disabled={!selectedFile || isSubmitting} onClick={() => void onGenerate()} style={phoneStyles.button} type="button">
-          {isSubmitting ? "Submitting..." : "Generate video"}
-        </button>
-        <p style={phoneStyles.status}>Status: {statusMessage}</p>
-        {videoUrl ? (
-          <section style={phoneStyles.videoSection}>
-            <video controls playsInline src={videoUrl} style={phoneStyles.video} />
-            <a download href={videoUrl} style={phoneStyles.downloadLink}>
-              Download MP4
+      </div>
+
+      {showOverlayVideo && videoUrl ? (
+        <section style={phoneStyles.overlayCard}>
+          <video controls playsInline ref={overlayVideoRef} src={videoUrl} style={phoneStyles.overlayVideo} />
+          <div style={phoneStyles.resultControls}>
+            <button onClick={() => void onRetake()} style={phoneStyles.resultButton} type="button">
+              Retake
+            </button>
+            <button
+              onClick={() => {
+                if (overlayVideoRef.current) {
+                  overlayVideoRef.current.currentTime = 0;
+                  void overlayVideoRef.current.play().catch(() => undefined);
+                }
+              }}
+              style={phoneStyles.resultButton}
+              type="button"
+            >
+              Replay
+            </button>
+            <a download href={videoUrl} style={phoneStyles.resultLink}>
+              Download
             </a>
-          </section>
-        ) : null}
-      </section>
+          </div>
+        </section>
+      ) : null}
+
+      <button
+        disabled={!cameraReady || isSubmitting}
+        onClick={() => void onPrimaryCapture()}
+        style={phoneStyles.captureCta}
+        type="button"
+      >
+        {isSubmitting ? "Generating..." : "Capture Image"}
+      </button>
+
+      <div style={phoneStyles.fallbackRow}>
+        <label style={phoneStyles.fallbackLabel}>
+          <span>Fallback upload</span>
+          <input accept="image/*" capture="environment" onChange={onFileChange} style={phoneStyles.fileInput} type="file" />
+        </label>
+      </div>
+      {cameraError ? <p style={phoneStyles.cameraError}>{cameraError}</p> : null}
     </main>
   );
 }
@@ -926,108 +978,164 @@ const styles: Record<string, React.CSSProperties> = {
 };
 
 const phoneStyles: Record<string, React.CSSProperties> = {
-  app: {
+  arApp: {
+    position: "relative",
     minHeight: "100vh",
+    width: "100vw",
+    overflow: "hidden",
     background: "#020617",
     color: "#e2e8f0",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    padding: "1rem",
     fontFamily: "Inter, system-ui, sans-serif",
   },
-  card: {
+  backgroundCamera: {
+    position: "absolute",
+    inset: 0,
     width: "100%",
-    maxWidth: "680px",
-    background: "#0b1220",
-    border: "1px solid #1f2a44",
+    height: "100%",
+    objectFit: "cover",
+    background: "black",
+  },
+  topHud: {
+    position: "absolute",
+    top: "env(safe-area-inset-top, 0px)",
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    padding: "1rem 1rem 0.25rem",
+    display: "flex",
+    justifyContent: "center",
+  },
+  titleWrap: {
+    width: "100%",
+    maxWidth: "760px",
+    borderRadius: "14px",
+    border: "1px solid rgba(94, 125, 186, 0.45)",
+    background: "rgba(3, 14, 36, 0.56)",
+    backdropFilter: "blur(7px)",
+    padding: "0.75rem 0.9rem",
+  },
+  arTitle: {
+    margin: 0,
+    fontSize: "1rem",
+    fontWeight: 700,
+    color: "#deebff",
+    letterSpacing: "0.01em",
+  },
+  arSubtitle: {
+    margin: "0.35rem 0 0",
+    fontSize: "0.86rem",
+    color: "#bed2ff",
+  },
+  overlayCard: {
+    position: "absolute",
+    left: "50%",
+    top: "52%",
+    transform: "translate(-50%, -50%)",
+    width: "min(92vw, 760px)",
+    borderRadius: "18px",
+    border: "1px solid rgba(118, 170, 255, 0.52)",
+    boxShadow: "0 0 0 1px rgba(110, 161, 255, 0.12), 0 18px 45px rgba(1, 8, 24, 0.56), 0 0 34px rgba(60, 141, 255, 0.25)",
+    background: "rgba(5, 16, 40, 0.56)",
+    backdropFilter: "blur(8px)",
+    padding: "0.7rem",
+    zIndex: 30,
+  },
+  overlayVideo: {
+    width: "100%",
     borderRadius: "12px",
-    padding: "1rem",
+    border: "1px solid rgba(149, 188, 255, 0.46)",
+    background: "#030814",
+    maxHeight: "58vh",
+    objectFit: "contain",
+  },
+  resultControls: {
+    display: "flex",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: "0.55rem",
+    marginTop: "0.55rem",
+  },
+  resultButton: {
+    padding: "0.52rem 0.72rem",
+    borderRadius: "999px",
+    border: "1px solid rgba(124, 154, 213, 0.62)",
+    background: "rgba(5, 17, 43, 0.74)",
+    color: "#e1ecff",
+    fontSize: "0.82rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  resultLink: {
+    padding: "0.52rem 0.72rem",
+    borderRadius: "999px",
+    border: "1px solid rgba(124, 154, 213, 0.62)",
+    background: "rgba(5, 17, 43, 0.74)",
+    color: "#9ec4ff",
+    fontSize: "0.82rem",
+    fontWeight: 600,
+    textDecoration: "none",
+  },
+  captureCta: {
+    position: "absolute",
+    left: "50%",
+    bottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)",
+    transform: "translateX(-50%)",
+    zIndex: 40,
+    borderRadius: "999px",
+    border: "1px solid rgba(120, 170, 255, 0.65)",
+    background: "linear-gradient(180deg, rgba(57,127,255,0.94), rgba(41,99,228,0.9))",
+    color: "white",
+    fontWeight: 700,
+    fontSize: "0.95rem",
+    letterSpacing: "0.01em",
+    padding: "0.88rem 1.35rem",
+    minWidth: "190px",
+    cursor: "pointer",
+    boxShadow: "0 12px 30px rgba(19, 84, 210, 0.5)",
+  },
+  fallbackRow: {
+    position: "absolute",
+    right: "0.7rem",
+    bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.65rem)",
+    zIndex: 45,
+  },
+  fallbackLabel: {
     display: "grid",
-    gap: "0.75rem",
+    gap: "0.25rem",
+    padding: "0.48rem 0.58rem",
+    borderRadius: "10px",
+    border: "1px solid rgba(93, 126, 186, 0.42)",
+    background: "rgba(4, 16, 42, 0.58)",
+    fontSize: "0.7rem",
+    color: "#bcd5ff",
+    backdropFilter: "blur(6px)",
   },
-  title: {
-    margin: 0,
-    fontSize: "1.15rem",
-  },
-  subtitle: {
-    margin: 0,
-    color: "#94a3b8",
-    fontSize: "0.9rem",
-  },
-  fileLabel: {
-    display: "grid",
-    gap: "0.4rem",
-    fontSize: "0.9rem",
+  captureFlash: {
+    position: "absolute",
+    inset: 0,
+    background: "rgba(255,255,255,0.2)",
+    zIndex: 35,
+    pointerEvents: "none",
   },
   fileInput: {
     border: "1px solid #334155",
     borderRadius: "8px",
     background: "#0f172a",
     color: "#e2e8f0",
-    padding: "0.55rem",
-  },
-  preview: {
-    width: "100%",
-    borderRadius: "10px",
-    border: "1px solid #334155",
-    objectFit: "cover",
-    maxHeight: "360px",
-  },
-  button: {
-    padding: "0.7rem 0.9rem",
-    borderRadius: "8px",
-    border: "1px solid #2563eb",
-    background: "#2563eb",
-    color: "white",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  secondaryButton: {
-    padding: "0.62rem 0.8rem",
-    borderRadius: "8px",
-    border: "1px solid #334155",
-    background: "#0f172a",
-    color: "#e2e8f0",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  cameraControls: {
-    display: "flex",
-    gap: "0.5rem",
-    flexWrap: "wrap",
-  },
-  cameraPreview: {
-    width: "100%",
-    borderRadius: "10px",
-    border: "1px solid #334155",
-    background: "black",
-    maxHeight: "260px",
-    objectFit: "cover",
+    padding: "0.3rem",
   },
   cameraError: {
+    position: "absolute",
+    left: "50%",
+    transform: "translateX(-50%)",
+    bottom: "calc(env(safe-area-inset-bottom, 0px) + 5.1rem)",
     margin: 0,
-    color: "#fda4af",
-    fontSize: "0.85rem",
-  },
-  status: {
-    margin: 0,
-    color: "#cbd5e1",
-    fontSize: "0.9rem",
-  },
-  videoSection: {
-    display: "grid",
-    gap: "0.5rem",
-  },
-  video: {
-    width: "100%",
-    borderRadius: "10px",
-    border: "1px solid #334155",
-    background: "black",
-  },
-  downloadLink: {
-    color: "#93c5fd",
-    textDecoration: "underline",
-    fontSize: "0.9rem",
+    fontSize: "0.78rem",
+    color: "#ffd0d8",
+    background: "rgba(64, 18, 28, 0.78)",
+    border: "1px solid rgba(251, 146, 170, 0.45)",
+    borderRadius: "8px",
+    padding: "0.38rem 0.52rem",
+    zIndex: 45,
   },
 };
