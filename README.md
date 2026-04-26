@@ -4,6 +4,8 @@ Real-time spatial reasoning that bridges physical environments and AI. Point a p
 
 **All AI inference runs locally on the ASUS edge supercomputer. No cloud. No data leaves the room.**
 
+
+
 ---
 
 ## Architecture
@@ -27,16 +29,18 @@ The VLM fires once to understand the scene. SAM2 fires every frame to keep overl
 
 ## Tech Stack
 
-| Layer        | Choice                          | Purpose                              |
-| ------------ | ------------------------------- | ------------------------------------ |
-| Hardware     | ASUS Ascent GX10 (GB10 Blackwell) | Local inference, 128GB unified mem |
-| VLM          | Qwen2.5-VL-7B via vLLM         | Spatial reasoning + JSON output      |
-| Segmentation | SAM2                            | Pixel-accurate masks + video tracking|
-| Depth        | Depth Anything v2               | Monocular depth estimation           |
-| Audio        | Whisper-base                    | Voice transcription                  |
-| Backend      | FastAPI (Python)                | REST + WebSocket API                 |
-| Frontend     | React PWA (TypeScript, Vite)    | Camera, overlays, AR rendering       |
-| SSL          | mkcert                          | HTTPS for mobile camera access       |
+
+| Layer        | Choice                            | Purpose                               |
+| ------------ | --------------------------------- | ------------------------------------- |
+| Hardware     | ASUS Ascent GX10 (GB10 Blackwell) | Local inference, 128GB unified mem    |
+| VLM          | Qwen2.5-VL-7B via vLLM            | Spatial reasoning + JSON output       |
+| Segmentation | SAM2                              | Pixel-accurate masks + video tracking |
+| Depth        | Depth Anything v2                 | Monocular depth estimation            |
+| Audio        | Whisper-base                      | Voice transcription                   |
+| Backend      | FastAPI (Python)                  | REST + WebSocket API                  |
+| Frontend     | React PWA (TypeScript, Vite)      | Camera, overlays, AR rendering        |
+| SSL          | mkcert                            | HTTPS for mobile camera access        |
+
 
 ---
 
@@ -66,14 +70,16 @@ aura/
 
 ## Progressive Phases
 
-| Phase | Name                        | Description                                                    |
-| ----- | --------------------------- | -------------------------------------------------------------- |
-| 0     | Guaranteed Fallback         | Pre-recorded video + hardcoded overlay (cannot fail)           |
-| 1     | Static Image Analysis       | Upload photo → VLM → overlay at correct coords                |
-| 2     | Live Camera + Voice *(target)* | Camera + voice → snapshot pipeline → AR overlay (<2s)       |
-| 3     | Continuous Auto-Scan        | Auto-scan every 2.5s, server drops concurrent (429)            |
-| 4     | SAM2-Tracked AR             | WebSocket streaming, SAM2 tracks objects between VLM queries   |
-| 5     | Full Real-Time Streaming    | SAM2 + Depth on every frame, depth sorting, hallucination check|
+
+| Phase | Name                           | Description                                                     |
+| ----- | ------------------------------ | --------------------------------------------------------------- |
+| 0     | Guaranteed Fallback            | Pre-recorded video + hardcoded overlay (cannot fail)            |
+| 1     | Static Image Analysis          | Upload photo → VLM → overlay at correct coords                  |
+| 2     | Live Camera + Voice *(target)* | Camera + voice → snapshot pipeline → AR overlay (<2s)           |
+| 3     | Continuous Auto-Scan           | Auto-scan every 2.5s, server drops concurrent (429)             |
+| 4     | SAM2-Tracked AR                | WebSocket streaming, SAM2 tracks objects between VLM queries    |
+| 5     | Full Real-Time Streaming       | SAM2 + Depth on every frame, depth sorting, hallucination check |
+
 
 Each phase is independently demonstrable. A polished earlier phase beats a broken later phase.
 
@@ -82,12 +88,14 @@ Each phase is independently demonstrable. A polished earlier phase beats a broke
 ## Quick Start
 
 ### Prerequisites
+
 - ASUS Ascent GX10 (or NVIDIA GPU with 24GB+ VRAM)
 - Python 3.11+
 - Node.js 20+
 - mkcert
 
 ### Setup
+
 ```bash
 # 1. Install dependencies
 scripts/setup/install_server_deps.sh
@@ -109,6 +117,7 @@ curl https://<local-ip>:8443/health
 ```
 
 ### Development (No GPU Required)
+
 ```bash
 # Start mock server (returns canned responses)
 scripts/dev/run_mock_server.sh
