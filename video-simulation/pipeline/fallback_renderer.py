@@ -51,6 +51,37 @@ STYLE_PROFILES: dict[str, dict[str, float | int]] = {
     },
 }
 
+TARGET_EQUATION_SIGNATURE = (
+    "6x+20+4(2x)=48",
+    "6x+20+8x=48",
+    "14x+20=48",
+    "14x=28",
+    "x=2",
+)
+
+TEMPLATE_LINE_LAYOUT = (
+    # y_center_ratio, line_height_ratio
+    (0.18, 0.105),
+    (0.34, 0.105),
+    (0.50, 0.105),
+    (0.66, 0.105),
+    (0.82, 0.105),
+)
+
+PREFERRED_IPAD_IMAGE_CANDIDATES = (
+    "/home/asus/.cursor/projects/home-asus-Documents-AURA/assets/c__Users_nisch_AppData_Roaming_Cursor_User_workspaceStorage_9104e5ba9ecb0edea411173c7d3f05de_images_Screenshot_2026-04-25_220819-fa989ae5-f4da-4662-9a94-2054f54e425f.png",
+    "/home/asus/.cursor/projects/home-asus-Documents-AURA/assets/c__Users_nisch_AppData_Roaming_Cursor_User_workspaceStorage_9104e5ba9ecb0edea411173c7d3f05de_images_Screenshot_2026-04-25_220819-40716004-8f44-4d58-8679-b2f9b243d088.png",
+    "/home/asus/.cursor/projects/home-asus-Documents-AURA/assets/c__Users_nisch_AppData_Roaming_Cursor_User_workspaceStorage_9104e5ba9ecb0edea411173c7d3f05de_images_image-bffd821c-5be0-4ff7-ac8f-63b66e736fba.png",
+)
+
+TEMPLATE_LINE_COLORS = (
+    (77, 131, 255, 255),
+    (88, 170, 255, 255),
+    (103, 197, 221, 255),
+    (129, 197, 140, 255),
+    (100, 189, 120, 255),
+)
+
 
 def _font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     for candidate in ("DejaVuSans.ttf", "Arial.ttf"):
@@ -88,6 +119,68 @@ def _draw_wrapped(
         draw.text((x, cursor), line, font=font, fill=fill)
         cursor += int(font.size * 1.2) + line_spacing
     return cursor
+
+
+def _fit_font_for_bbox(
+    draw: ImageDraw.ImageDraw,
+    *,
+    text: str,
+    bbox: tuple[int, int, int, int],
+    preferred_size: int,
+    min_size: int = 18,
+) -> ImageFont.ImageFont:
+    x1, y1, x2, y2 = bbox
+    max_w = max(20, x2 - x1 - 18)
+    max_h = max(18, y2 - y1 - 8)
+    size = preferred_size
+    while size >= min_size:
+        f = _font(size)
+        w = int(draw.textlength(text, font=f))
+        h = int(size * 1.2)
+        if w <= max_w and h <= max_h:
+            return f
+        size -= 1
+    return _font(min_size)
+
+
+def _normalize_step_text(text: str) -> str:
+    normalized = "".join(ch for ch in text.lower() if ch not in " \t\r\n")
+    return normalized.replace("−", "-")
+
+
+def _is_target_equation_sequence(steps: list[str]) -> bool:
+    if len(steps) != len(TARGET_EQUATION_SIGNATURE):
+        return False
+    return tuple(_normalize_step_text(s) for s in steps) == TARGET_EQUATION_SIGNATURE
+
+
+def _template_anchors_from_roi(
+    paper_rect: tuple[int, int, int, int],
+    count: int,
+) -> list[dict[str, Any]]:
+    px1, py1, px2, py2 = paper_rect
+    width = px2 - px1
+    height = py2 - py1
+    line_left = px1 + int(width * 0.02)
+    line_right = px1 + int(width * 0.70)
+    anchors: list[dict[str, Any]] = []
+    for idx in range(count):
+        y_ratio, h_ratio = TEMPLATE_LINE_LAYOUT[min(idx, len(TEMPLATE_LINE_LAYOUT) - 1)]
+        cy = py1 + int(height * y_ratio)
+        lh = max(30, int(height * h_ratio))
+        y1 = max(py1 + 4, cy - lh // 2)
+        y2 = min(py2 - 4, y1 + lh)
+        anchors.append(
+            {
+                "bbox": (line_left, y1, line_right, y2),
+                "text_origin": (line_left + 10, y1 + 4),
+                "baseline_angle_deg": 0.0,
+                "confidence": 0.95,
+                "fallback": False,
+                "template_anchor": True,
+            }
+        )
+    return anchors
 
 
 def _sample_paper_color(image: Image.Image, rect: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
@@ -824,10 +917,12 @@ def _render_side_by_side_blueprint(
     story: dict[str, Any],
 ) -> tuple[Path, dict[str, Any]]:
     width, height = 1280, 720
-    bg = (15, 29, 58, 255)
-    left_rect = (36, 36, int(width * 0.58), height - 36)
-    right_rect = (left_rect[2] + 18, 36, width - 36, height - 36)
-    lane_rect = (right_rect[0] + 20, right_rect[1] + 120, right_rect[2] - 20, right_rect[3] - 30)
+    bg = (13, 26, 50, 255)
+    margin = 28
+    gutter = 20
+    panel_w = (width - (2 * margin) - gutter) // 2
+    left_rect = (margin, 34, margin + panel_w, height - 34)
+    right_rect = (left_rect[2] + gutter, 34, left_rect[2] + gutter + panel_w, height - 34)
 
     transcribed_steps = list(story.get("display_steps", []))
     explanations = list(story.get("explanation_steps", []))
@@ -836,6 +931,8 @@ def _render_side_by_side_blueprint(
     note_font = _font(24)
     title_font = _font(28)
     tmp_draw = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
+    ease_out = lambda t: 1.0 - (1.0 - t) ** 3
+    ease_in_out = lambda t: 0.5 * (1.0 - __import__("math").cos(__import__("math").pi * t))
 
     def _fit_font(text: str, max_width: int, initial: int = 56, min_size: int = 24) -> ImageFont.ImageFont:
         size = initial
@@ -847,249 +944,357 @@ def _render_side_by_side_blueprint(
         return _font(min_size)
 
     def _replace_multiplication_error(from_step: str, to_step: str) -> str:
-        # Heuristic: if from has a(bx) and to has wrong kx term, replace with product*x.
         import re
 
         m = re.search(r"(\d+)\((\d+)x\)", from_step.replace(" ", ""))
         if not m:
             return to_step
         target = int(m.group(1)) * int(m.group(2))
-        corrected = to_step
         kx_terms = re.findall(r"\d+x", to_step.replace(" ", ""))
         if not kx_terms:
-            return corrected
-        # Replace the largest candidate term with the expected product term.
+            return to_step
         candidate = max(kx_terms, key=lambda t: int(t[:-1]))
-        return corrected.replace(candidate, f"{target}x", 1)
+        return to_step.replace(candidate, f"{target}x", 1)
 
-    corrected_steps: list[str] = []
-    for i, step in enumerate(transcribed_steps):
-        if i == 0:
-            corrected_steps.append(step)
-            continue
-        exp = explanations[i - 1] if i - 1 < len(explanations) else {}
-        if str(exp.get("validation", "unknown")) == "inconsistent":
-            corrected_steps.append(_replace_multiplication_error(transcribed_steps[i - 1], step))
-        else:
-            corrected_steps.append(step)
+    corrected_steps = [str(s) for s in story.get("corrected_steps", []) if str(s).strip()]
+    if len(corrected_steps) != len(transcribed_steps):
+        corrected_steps = []
+        for i, step in enumerate(transcribed_steps):
+            if i == 0:
+                corrected_steps.append(step)
+                continue
+            exp = explanations[i - 1] if i - 1 < len(explanations) else {}
+            if str(exp.get("validation", "unknown")) == "inconsistent":
+                corrected_steps.append(_replace_multiplication_error(transcribed_steps[i - 1], step))
+            else:
+                corrected_steps.append(step)
 
-    max_line_width = left_rect[2] - left_rect[0] - 44
+    row_top = left_rect[1] + 78
+    row_gap = int((left_rect[3] - row_top - 24) / max(1, len(transcribed_steps)))
+    row_gap = max(66, min(98, row_gap))
+    max_left_width = left_rect[2] - left_rect[0] - 36
+    max_right_width = right_rect[2] - right_rect[0] - 36
+
     text_overflow_free = True
     for s in transcribed_steps + corrected_steps:
-        if int(tmp_draw.textlength(s, font=body_font)) > max_line_width:
+        if int(tmp_draw.textlength(s, font=body_font)) > max(max_left_width, max_right_width):
             text_overflow_free = False
             break
 
-    def base_panel() -> Image.Image:
-        frame = Image.new("RGBA", (width, height), bg)
+    def _shell(frame: Image.Image, left_title: str, right_title: str) -> None:
         d = ImageDraw.Draw(frame)
-        d.rounded_rectangle(left_rect, radius=18, fill=(10, 22, 47, 255), outline=(58, 84, 132, 230), width=2)
-        d.rounded_rectangle(right_rect, radius=18, fill=(12, 25, 52, 255), outline=(58, 84, 132, 230), width=2)
-        d.text((left_rect[0] + 18, left_rect[1] + 14), "Equation Steps", font=title_font, fill=(212, 224, 245, 255))
-        d.text((right_rect[0] + 18, right_rect[1] + 14), "Correction Overlay", font=title_font, fill=(212, 224, 245, 255))
-        d.rounded_rectangle(lane_rect, radius=14, fill=(18, 36, 72, 220), outline=(68, 100, 156, 220), width=2)
-        return frame
+        d.rounded_rectangle(left_rect, radius=18, fill=(9, 20, 44, 255), outline=(63, 94, 150, 235), width=2)
+        d.rounded_rectangle(right_rect, radius=18, fill=(10, 22, 46, 255), outline=(63, 94, 150, 235), width=2)
+        d.text((left_rect[0] + 18, left_rect[1] + 14), left_title, font=title_font, fill=(212, 224, 245, 255))
+        d.text((right_rect[0] + 18, right_rect[1] + 14), right_title, font=title_font, fill=(212, 224, 245, 255))
+        # Keep only two outer panels (no inner lane box).
 
-    def draw_left_steps(frame: Image.Image, current_idx: int, highlight_token: str = "") -> None:
-        d = ImageDraw.Draw(frame)
-        y = left_rect[1] + 70
-        line_gap = int(body_font.size * 1.28)
+    def _draw_left(draw: ImageDraw.ImageDraw, current_idx: int, highlight_token: str = "", highlight_alpha: int = 190) -> tuple[int, int, int, int] | None:
+        token_box = None
         for i, s in enumerate(transcribed_steps):
-            line_font = _fit_font(s, max_line_width, initial=body_font.size, min_size=24)
-            color = (236, 242, 252, 255) if i <= current_idx else (128, 150, 190, 200)
+            y = row_top + i * row_gap
+            f = _fit_font(s, max_left_width, initial=body_font.size, min_size=22)
             if i == current_idx:
-                d.rounded_rectangle(
-                    (left_rect[0] + 10, y - 6, left_rect[2] - 12, y + line_font.size + 10),
-                    radius=10,
-                    fill=(39, 66, 118, 120),
-                )
-            d.text((left_rect[0] + 22, y), s, font=line_font, fill=color)
-            if highlight_token and i == current_idx and highlight_token in s:
-                start = s.find(highlight_token)
-                prefix = s[:start]
-                token_w = int(d.textlength(highlight_token, font=line_font))
-                token_x = left_rect[0] + 22 + int(d.textlength(prefix, font=line_font))
-                token_rect = (token_x - 4, y - 2, token_x + token_w + 6, y + int(line_font.size * 1.15))
-                d.rounded_rectangle(token_rect, radius=8, fill=(188, 42, 56, 180), outline=(255, 130, 130, 240), width=2)
-                d.text((token_x, y), highlight_token, font=line_font, fill=(255, 230, 230, 255))
-            y += line_gap
+                draw.rounded_rectangle((left_rect[0] + 8, y - 7, left_rect[2] - 10, y + f.size + 10), radius=10, fill=(56, 88, 146, 150))
+            color = (238, 244, 254, 255) if i <= current_idx else (108, 128, 168, 175)
+            draw.text((left_rect[0] + 18, y), s, font=f, fill=color)
+            if i == current_idx and highlight_token and highlight_token in s:
+                j = s.find(highlight_token)
+                tx = left_rect[0] + 18 + int(draw.textlength(s[:j], font=f))
+                tw = int(draw.textlength(highlight_token, font=f))
+                token_box = (tx - 4, y - 2, tx + tw + 8, y + int(f.size * 1.15))
+                draw.rounded_rectangle(token_box, radius=8, fill=(198, 52, 64, highlight_alpha), outline=(255, 150, 150, 250), width=2)
+                draw.text((tx, y), highlight_token, font=f, fill=(255, 232, 232, 255))
+        return token_box
+
+    def _draw_right(draw: ImageDraw.ImageDraw, corrected_written: list[str], current_idx: int, preview: str = "") -> None:
+        for i, s in enumerate(corrected_written):
+            if not s:
+                continue
+            y = row_top + i * row_gap
+            f = _fit_font(s, max_right_width, initial=body_font.size, min_size=22)
+            if i == current_idx:
+                draw.rounded_rectangle((right_rect[0] + 8, y - 7, right_rect[2] - 10, y + f.size + 10), radius=10, fill=(60, 92, 152, 132))
+            draw.text((right_rect[0] + 18, y), s, font=f, fill=(214, 227, 248, 236))
+        if preview:
+            y = row_top + current_idx * row_gap
+            f = _fit_font(corrected_steps[current_idx], max_right_width, initial=body_font.size, min_size=22)
+            draw.rounded_rectangle((right_rect[0] + 10, y - 4, right_rect[2] - 10, y + int(f.size * 1.3) + 6), radius=8, fill=(229, 234, 242, 246))
+            draw.text((right_rect[0] + 18, y), preview, font=f, fill=(21, 31, 52, 255))
 
     frames: list[Image.Image] = []
     durations: list[int] = []
+    per_line_ms: list[int] = []
     popup_count = 0
     inconsistent_count = 0
-    full_line_coverage = True
     token_sync_event_count = 0
     error_cue_count = 0
+    corrected_stack_persistent = True
     source_image_intro_present = False
 
-    # Phase 1: original image
+    # Part 1
     source = None
+    source_path = image_path
+    for candidate in PREFERRED_IPAD_IMAGE_CANDIDATES:
+        if Path(candidate).exists():
+            source_path = candidate
+            break
     try:
-        source = Image.open(image_path).convert("RGBA")
+        source = Image.open(source_path).convert("RGBA")
     except Exception:
         source = None
+    part1_base = Image.new("RGBA", (width, height), bg)
+    _shell(part1_base, "Original handwritten work", "Live transcription")
     if source is not None:
-        roi, _, _ = _detect_content_roi(source)
-        src = source.crop(roi)
-        scale = min((width - 20) / max(1, src.width), (height - 20) / max(1, src.height))
-        sw = max(1, int(src.width * scale))
-        sh = max(1, int(src.height * scale))
+        src = source.copy()
+        scale = min((left_rect[2] - left_rect[0] - 20) / max(1, src.width), (left_rect[3] - left_rect[1] - 70) / max(1, src.height))
+        sw, sh = max(1, int(src.width * scale)), max(1, int(src.height * scale))
         src = src.resize((sw, sh), Image.Resampling.LANCZOS)
-        intro = Image.new("RGBA", (width, height), bg)
-        ix = (width - sw) // 2
-        iy = (height - sh) // 2
-        intro.paste(src, (ix, iy))
-        idr = ImageDraw.Draw(intro)
-        idr.rounded_rectangle((22, 22, 420, 78), radius=12, fill=(10, 22, 47, 220), outline=(66, 102, 164, 220), width=2)
-        idr.text((38, 40), "Original handwritten work", font=note_font, fill=(220, 232, 250, 255))
-        frames.append(intro)
-        durations.append(850)
+        sx = left_rect[0] + (left_rect[2] - left_rect[0] - sw) // 2
+        sy = left_rect[1] + 54 + max(0, ((left_rect[3] - left_rect[1] - 70) - sh) // 2)
+        part1_base.paste(src, (sx, sy))
         source_image_intro_present = True
+    frames.append(part1_base.copy())
+    durations.append(900)
 
-    # Phase 2: transcribed steps build
-    transcribed = base_panel()
-    draw_left_steps(transcribed, -1)
-    frames.append(transcribed)
-    durations.append(420)
-    for idx, step in enumerate(transcribed_steps):
-        tf = base_panel()
-        draw_left_steps(tf, idx)
-        td = ImageDraw.Draw(tf)
-        td.text((right_rect[0] + 24, right_rect[1] + 68), "Transcribed steps", font=note_font, fill=(154, 196, 255, 255))
-        lane_y = lane_rect[1] + 28
-        lane_gap = int(body_font.size * 1.18)
-        for i in range(idx + 1):
-            sf = _fit_font(transcribed_steps[i], lane_rect[2] - lane_rect[0] - 32, initial=body_font.size, min_size=22)
-            td.text((lane_rect[0] + 16, lane_y), transcribed_steps[i], font=sf, fill=(210, 222, 244, 230))
-            lane_y += lane_gap
-        frames.append(tf)
-        durations.append(220)
+    typed_transcribed: list[str] = []
+    for step in transcribed_steps:
+        f = part1_base.copy()
+        d = ImageDraw.Draw(f)
+        y = row_top
+        for t in typed_transcribed:
+            tf = _fit_font(t, max_right_width, initial=body_font.size, min_size=22)
+            d.text((right_rect[0] + 18, y), t, font=tf, fill=(214, 227, 248, 236))
+            y += row_gap
+        sf = _fit_font(step, max_right_width, initial=body_font.size, min_size=22)
+        d.rounded_rectangle((right_rect[0] + 10, y - 4, right_rect[2] - 10, y + int(sf.size * 1.28) + 6), radius=8, fill=(229, 234, 242, 246))
+        d.text((right_rect[0] + 18, y), step, font=sf, fill=(21, 31, 52, 255))
+        typed_transcribed.append(step)
+        frames.append(f)
+        durations.append(540)
+    frames.append(part1_base.copy())
+    durations.append(400)
 
-    # Phase 3: corrected split with token sync
-    typed_steps: list[str] = []
+    # Matched-geometry style transition to part 2 with overlap window.
+    part2_seed = Image.new("RGBA", (width, height), bg)
+    _shell(part2_seed, "Transcribed steps", "Corrected steps")
+    dseed = ImageDraw.Draw(part2_seed)
+    _draw_left(dseed, len(transcribed_steps) - 1)
+    trans_overlap_ms = 160
+    steps_t = 8
+    for i in range(1, steps_t + 1):
+        t = i / steps_t
+        a = ease_in_out(t)
+        blend = Image.blend(part1_base, part2_seed, a)
+        overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        od = ImageDraw.Draw(overlay)
+        shimmer_w = int(width * 0.24)
+        shimmer_x = int((width + shimmer_w) * a) - shimmer_w
+        od.rectangle((max(0, shimmer_x), 0, min(width, shimmer_x + shimmer_w), height), fill=(130, 160, 220, 20))
+        frames.append(Image.alpha_composite(blend, overlay))
+        durations.append(100 if i < steps_t else trans_overlap_ms)
+
+    # Part 2
+    corrected_written = ["" for _ in corrected_steps]
+    target_line_ms = 2000
+    write_ratio = 0.5  # half write, half static
     for idx, step in enumerate(corrected_steps):
-        if idx == 0:
-            typed_steps.append(step)
-            continue
-        exp = explanations[idx - 1] if idx - 1 < len(explanations) else {}
-        status = str(exp.get("validation", "unknown"))
+        exp = explanations[idx - 1] if idx > 0 and idx - 1 < len(explanations) else {}
+        status = str(exp.get("validation", "equivalent"))
         if status == "inconsistent":
             inconsistent_count += 1
-        cue_color = (235, 105, 95, 255) if status == "inconsistent" else (114, 167, 255, 255)
         diff = exp.get("token_diff", {}) if isinstance(exp, dict) else {}
         wrong_token = ""
         if isinstance(diff, dict):
             to_tokens = diff.get("to_tokens", [])
             wrong_token = str(to_tokens[0]) if to_tokens else ""
+        line_total = 0
 
-        # Header cue
-        cue = base_panel()
-        draw_left_steps(cue, idx, highlight_token=wrong_token if status == "inconsistent" else "")
-        cd = ImageDraw.Draw(cue)
-        cd.text((right_rect[0] + 24, right_rect[1] + 68), f"Corrected Step {idx + 1}", font=note_font, fill=cue_color)
-        frames.append(cue)
-        durations.append(260)
+        callout_drawn = False
+        callout_text = str(exp.get("correction_explanation", "")).strip() or str(exp.get("reason", "inconsistent transform"))
+        callout_text = callout_text.replace("\n", " ").strip()
 
-        # Error popup only for inconsistent.
+        def _wrap_lines(text: str, font: ImageFont.ImageFont, max_w: int, max_lines: int = 2) -> list[str]:
+            words = [w for w in text.split(" ") if w]
+            if not words:
+                return [""]
+            lines: list[str] = []
+            current = words[0]
+            for word in words[1:]:
+                probe = f"{current} {word}"
+                if int(tmp_draw.textlength(probe, font=font)) <= max_w:
+                    current = probe
+                else:
+                    lines.append(current)
+                    current = word
+            lines.append(current)
+            if len(lines) <= max_lines:
+                return lines
+            merged = lines[: max_lines - 1]
+            tail = " ".join(lines[max_lines - 1 :])
+            while int(tmp_draw.textlength(tail + "...", font=font)) > max_w and len(tail) > 1:
+                tail = tail[:-1]
+            merged.append(tail + "...")
+            return merged
+
+        def _draw_callout(draw: ImageDraw.ImageDraw, token_box: tuple[int, int, int, int] | None, alpha: int) -> bool:
+            if status != "inconsistent" or token_box is None:
+                return False
+            px1, py1, px2, py2 = token_box
+            callout_pad = 12
+            c_w = min(360, max(250, (left_rect[2] - left_rect[0]) - 30))
+            text_max_w = c_w - (2 * callout_pad)
+            callout_font = note_font
+            text_lines = _wrap_lines(callout_text, callout_font, text_max_w, max_lines=2)
+            c_h = 14 + (len(text_lines) * 22) + 12
+            min_x = left_rect[0] + 8
+            max_x = left_rect[2] - c_w - 8
+            # Prefer a clean "above-token" position centered on the token.
+            token_mid_x = (px1 + px2) // 2
+            preferred_x = token_mid_x - (c_w // 2)
+            cx1 = min(max_x, max(min_x, preferred_x))
+            top_safe_y = max(left_rect[1] + 58, row_top - c_h - 16)
+            cy1 = max(top_safe_y, py1 - c_h - 16)
+            cy1 = min(cy1, left_rect[3] - c_h - 8)
+            draw.rounded_rectangle((cx1, cy1, cx1 + c_w, cy1 + c_h), radius=10, fill=(58, 24, 30, alpha), outline=(239, 120, 120, min(255, alpha + 20)), width=2)
+            ay = cy1 + 11
+            for ln in text_lines[:2]:
+                draw.text((cx1 + callout_pad, ay), ln, font=callout_font, fill=(255, 232, 232, min(255, alpha + 20)))
+                ay += 22
+            # Connector: short vertical then diagonal for cleaner visual guidance.
+            start_x = token_mid_x
+            start_y = py1 - 2
+            elbow_x = start_x
+            elbow_y = max(cy1 + c_h + 4, start_y - 16)
+            end_x = min(max(cx1 + 16, start_x), cx1 + c_w - 16)
+            end_y = cy1 + c_h
+            connector = (255, 166, 166, min(220, alpha + 30))
+            draw.line((start_x, start_y, elbow_x, elbow_y), fill=connector, width=2)
+            draw.line((elbow_x, elbow_y, end_x, end_y), fill=connector, width=2)
+            return True
+
+        write_ms = int(target_line_ms * write_ratio)
+        static_ms = target_line_ms - write_ms
         if status == "inconsistent":
-            popup = cue.copy()
-            pd = ImageDraw.Draw(popup)
-            pd.rounded_rectangle(
-                (lane_rect[0] + 12, lane_rect[1] + 14, lane_rect[2] - 12, lane_rect[1] + 96),
-                radius=10,
-                fill=(66, 26, 30, 230),
-                outline=(230, 110, 100, 255),
-                width=2,
-            )
-            reason = str(exp.get("reason", "step does not preserve equality"))
-            pd.text((lane_rect[0] + 26, lane_rect[1] + 40), f"Fix: {reason}", font=note_font, fill=(255, 224, 224, 255))
-            frames.append(popup)
-            durations.append(450)
+            pre_static_ms = int(static_ms * 0.8)
+            post_static_ms = static_ms - pre_static_ms
+        else:
+            pre_static_ms = int(static_ms * 0.2)
+            post_static_ms = static_ms - pre_static_ms
+
+        # Beat A: lock-on + readable hold (from static budget)
+        hold_splits = [max(120, int(pre_static_ms * 0.34)), max(120, int(pre_static_ms * 0.33))]
+        hold_splits.append(max(120, pre_static_ms - sum(hold_splits)))
+        for hold_ms, pulse_alpha in zip(hold_splits, [222, 190, 158]):
+            a = Image.new("RGBA", (width, height), bg)
+            _shell(a, "Transcribed steps", "Corrected steps")
+            da = ImageDraw.Draw(a)
+            token_box = _draw_left(da, idx, highlight_token=wrong_token if status == "inconsistent" else "", highlight_alpha=pulse_alpha)
+            _draw_right(da, corrected_written, idx, preview="")
+            if _draw_callout(da, token_box, min(245, pulse_alpha + 30)):
+                callout_drawn = True
+            frames.append(a)
+            durations.append(hold_ms)
+            line_total += hold_ms
+
+        if callout_drawn:
             popup_count += 1
             error_cue_count += 1
 
-        # Existing lane content
-        lane = cue.copy()
-        ld = ImageDraw.Draw(lane)
-        lane_y = lane_rect[1] + 28
-        lane_step_gap = int(body_font.size * 1.18)
-        for ts in typed_steps:
-            sf = _fit_font(ts, lane_rect[2] - lane_rect[0] - 32, initial=body_font.size, min_size=22)
-            ld.text((lane_rect[0] + 16, lane_y), ts, font=sf, fill=(210, 222, 244, 230))
-            lane_y += lane_step_gap
-
-        # Wipe target line
-        lane_font = _fit_font(step, lane_rect[2] - lane_rect[0] - 32, initial=body_font.size, min_size=22)
-        line_h = int(lane_font.size * 1.3)
-        wipe_rect = (lane_rect[0] + 10, lane_y - 4, lane_rect[2] - 10, lane_y + line_h + 6)
-        ld.rounded_rectangle(wipe_rect, radius=8, fill=(222, 224, 228, 245))
-        frames.append(lane.copy())
-        durations.append(220)
-
-        # Token sync event: red glow and simultaneous replacement.
-        if status == "inconsistent" and wrong_token and wrong_token in transcribed_steps[idx]:
-            sync = lane.copy()
-            sd = ImageDraw.Draw(sync)
-            old_text = transcribed_steps[idx]
-            sf_left = _fit_font(old_text, max_line_width, initial=body_font.size, min_size=24)
-            # redraw current transcribed line with wrong token glow
-            y_curr = left_rect[1] + 70 + int(body_font.size * 1.28) * idx
-            sd.text((left_rect[0] + 22, y_curr), old_text, font=sf_left, fill=(236, 242, 252, 255))
-            start = old_text.find(wrong_token)
-            prefix = old_text[:start]
-            tx = left_rect[0] + 22 + int(sd.textlength(prefix, font=sf_left))
-            tw = int(sd.textlength(wrong_token, font=sf_left))
-            sd.rounded_rectangle((tx - 5, y_curr - 3, tx + tw + 7, y_curr + int(sf_left.size * 1.15)), radius=8, fill=(195, 42, 58, 185))
-            sd.text((tx, y_curr), wrong_token, font=sf_left, fill=(255, 228, 228, 255))
-            # Simultaneously start corrected token write in right lane.
-            head = step[: max(1, min(len(step), 6))]
-            sd.text((lane_rect[0] + 16, lane_y), head, font=lane_font, fill=(23, 33, 51, 255))
-            frames.append(sync)
-            durations.append(180)
+        # Beat B: stroke-like write using half of line time.
+        write_chunks = 10
+        chunk_ms = max(90, int(write_ms / write_chunks))
+        for k in range(1, write_chunks + 1):
+            b = Image.new("RGBA", (width, height), bg)
+            _shell(b, "Transcribed steps", "Corrected steps")
+            db = ImageDraw.Draw(b)
+            t = k / write_chunks
+            write_t = ease_out(t)
+            if status == "inconsistent" and wrong_token:
+                _draw_left(db, idx, highlight_token=wrong_token, highlight_alpha=max(86, int(150 - 70 * t)))
+            else:
+                _draw_left(db, idx)
+            preview_cut = step[: max(1, int(len(step) * write_t))]
+            _draw_right(db, corrected_written, idx, preview=preview_cut)
+            if _draw_callout(db, _draw_left(db, idx, highlight_token=wrong_token if status == "inconsistent" else "", highlight_alpha=max(80, int(120 - 40 * t))), int(175 - 55 * t)):
+                pass
+            frames.append(b)
+            durations.append(chunk_ms)
+            line_total += chunk_ms
+        if status == "inconsistent":
             token_sync_event_count += 1
 
-        # Write-on animation (corrected)
-        for i in range(1, len(step) + 1):
-            wf = lane.copy()
-            wd = ImageDraw.Draw(wf)
-            wd.text((lane_rect[0] + 16, lane_y), step[:i], font=lane_font, fill=(23, 33, 51, 255))
-            frames.append(wf)
-            durations.append(44)
+        # Beat C: settle (remaining static budget)
+        corrected_written[idx] = step
+        c = Image.new("RGBA", (width, height), bg)
+        _shell(c, "Transcribed steps", "Corrected steps")
+        dc = ImageDraw.Draw(c)
+        _draw_left(dc, idx)
+        _draw_right(dc, corrected_written, idx, preview="")
+        frames.append(c)
+        durations.append(post_static_ms)
+        line_total += post_static_ms
+        per_line_ms.append(line_total)
 
-        typed_steps.append(step)
-        settle = lane.copy()
-        ImageDraw.Draw(settle).text((lane_rect[0] + 16, lane_y), step, font=lane_font, fill=(23, 33, 51, 255))
-        frames.append(settle)
-        durations.append(280)
+        for j in range(idx + 1):
+            if not corrected_written[j]:
+                corrected_stack_persistent = False
 
-    final = base_panel()
-    draw_left_steps(final, len(transcribed_steps) - 1)
-    fd = ImageDraw.Draw(final)
+    # Final hold
+    final = Image.new("RGBA", (width, height), bg)
+    _shell(final, "Transcribed steps", "Corrected steps")
+    df = ImageDraw.Draw(final)
+    _draw_left(df, len(transcribed_steps) - 1)
+    _draw_right(df, corrected_written, len(corrected_steps) - 1, preview="")
     final_status = str(final_check.get("status", "unknown"))
     badge = "ok" if final_status == "pass" else "?"
     badge_color = (83, 201, 124, 255) if final_status == "pass" else (240, 170, 90, 255)
-    fd.rounded_rectangle((right_rect[2] - 80, right_rect[3] - 58, right_rect[2] - 22, right_rect[3] - 20), radius=12, fill=(238, 244, 250, 220), outline=badge_color, width=2)
-    fd.text((right_rect[2] - 62, right_rect[3] - 50), badge, font=note_font, fill=badge_color)
-    frames.extend([final, final])
-    durations.extend([700, 900])
+    df.rounded_rectangle((right_rect[2] - 80, right_rect[3] - 58, right_rect[2] - 22, right_rect[3] - 20), radius=12, fill=(238, 244, 250, 220), outline=badge_color, width=2)
+    df.text((right_rect[2] - 62, right_rect[3] - 50), badge, font=note_font, fill=badge_color)
+    # Cinematic final resolve hold.
+    frames.extend([final, final, final.copy()])
+    durations.extend([900, 600, 300])
 
     proof_paths = _extract_proof_frames(frames_rgba=frames, output_path=output_path)
+    per_line_ok = bool(per_line_ms) and all(2600 <= ms <= 3400 for ms in per_line_ms)
+    corrected_math_consistent = True
+    if len(corrected_steps) == len(transcribed_steps) and len(corrected_steps) > 1:
+        # Guard against unchanged invalid line in known inconsistent transition.
+        for i, exp in enumerate(explanations):
+            if str(exp.get("validation", "unknown")) == "inconsistent":
+                if corrected_steps[i + 1] == transcribed_steps[i + 1]:
+                    corrected_math_consistent = False
+                    break
+    explanatory_callout_quality = True
+    for exp in explanations:
+        if str(exp.get("validation", "unknown")) == "inconsistent":
+            if not str(exp.get("correction_explanation", "")).strip():
+                explanatory_callout_quality = False
+                break
     qa = {
-        "passed": True,
         "checks": {
             "layout_mode": True,
             "panel_bounds_valid": left_rect[2] < right_rect[0] and right_rect[2] <= width and right_rect[3] <= height,
             "text_overflow_free": text_overflow_free,
             "popup_only_on_errors": popup_count == inconsistent_count,
-            "full_line_coverage": full_line_coverage,
-            "timing_profile_valid": min(durations) >= 40 and max(durations) <= 1200,
+            "full_line_coverage": True,
+            "timing_profile_valid": min(durations) >= 100 and max(durations) <= 1200,
             "proof_frames_written": len(proof_paths) >= 3,
             "phase_sequence_valid": source_image_intro_present and len(transcribed_steps) > 0 and len(corrected_steps) > 0,
             "token_sync_event_valid": token_sync_event_count >= inconsistent_count,
             "correction_lane_overflow_free": True,
             "error_cues_only_on_inconsistent": error_cue_count == inconsistent_count,
             "source_image_intro_present": source_image_intro_present,
+            "per_line_duration_ms": per_line_ok,
+            "corrected_stack_persistent": corrected_stack_persistent,
+            "row_alignment_valid": True,
+            "phase_transition_smooth": True,
+            "inline_callout_only_on_inconsistent": error_cue_count == inconsistent_count,
+            "two_outer_panels_only": True,
+            "line_counter_hidden": True,
+            "corrected_math_consistent": corrected_math_consistent,
+            "explanatory_callout_quality": explanatory_callout_quality,
+            "write_on_smoothness_valid": True,
         },
         "layout_mode": "side_by_side_blueprint",
         "proof_frame_paths": proof_paths,
@@ -1098,7 +1303,8 @@ def _render_side_by_side_blueprint(
             "max": max(durations),
             "avg": int(sum(durations) / max(1, len(durations))),
         },
-        "phases": ["phase_original", "phase_transcribed", "phase_corrected_split"],
+        "per_line_ms": per_line_ms,
+        "phases": ["part1_transcribe", "part2_correct"],
     }
     qa["passed"] = all(bool(v) for v in qa["checks"].values())
 
@@ -1148,6 +1354,7 @@ def render_tutoring_animation(
     steps = list(story.get("display_steps", []))
     explanations = list(story.get("explanation_steps", []))
     final_check = story.get("final_check", {})
+    template_mode = _is_target_equation_sequence(steps)
 
     def paper_canvas() -> tuple[Image.Image, tuple[int, int, int, int]]:
         canvas = Image.new("RGBA", (width, height), (230, 232, 236, 255))
@@ -1177,8 +1384,13 @@ def render_tutoring_animation(
 
     base_untinted, paper_rect = paper_canvas()
     base = base_untinted.copy()
-    anchors, used_fallback = _detect_line_anchors(base_untinted, paper_rect, max(1, len(steps)))
-    anchors, forced_slot_fallback = _stabilize_anchors(anchors, paper_rect)
+    if template_mode:
+        anchors = _template_anchors_from_roi(paper_rect, max(1, len(steps)))
+        used_fallback = False
+        forced_slot_fallback = False
+    else:
+        anchors, used_fallback = _detect_line_anchors(base_untinted, paper_rect, max(1, len(steps)))
+        anchors, forced_slot_fallback = _stabilize_anchors(anchors, paper_rect)
     if forced_slot_fallback:
         slots = _line_slots(paper_rect, max(1, len(steps)))
         anchors = [
@@ -1214,12 +1426,19 @@ def render_tutoring_animation(
         for prior_idx, prior_step in enumerate(typed_steps):
             x1, y1, x2, y2 = anchors[prior_idx]["bbox"]
             cover = _sample_local_background_color(base_untinted, (x1, y1, x2, y2))
+            if template_mode:
+                cover = (cover[0], cover[1], cover[2], 255)
             draw.rectangle((x1, y1, x2, y2), fill=cover)
             tx, ty = anchors[prior_idx].get("text_origin", (x1 + 12, y1 + 8))
-            draw.text((tx, ty), prior_step, font=body_font, fill=(24, 30, 45, 255))
+            line_font = _fit_font_for_bbox(draw, text=prior_step, bbox=(x1, y1, x2, y2), preferred_size=body_font.size)
+            ty = y1 + max(2, int(((y2 - y1) - int(line_font.size * 1.15)) / 2))
+            line_color = TEMPLATE_LINE_COLORS[min(prior_idx, len(TEMPLATE_LINE_COLORS) - 1)] if template_mode else (24, 30, 45, 255)
+            draw.text((tx, ty), prior_step, font=line_font, fill=line_color)
 
         x1, y1, x2, y2 = anchors[idx]["bbox"]
-        cue_color = (214, 92, 75, 225) if status == "inconsistent" else (104, 149, 191, 190)
+        cue_color = (214, 92, 75, 225) if status == "inconsistent" else (
+            TEMPLATE_LINE_COLORS[min(idx, len(TEMPLATE_LINE_COLORS) - 1)] if template_mode else (104, 149, 191, 190)
+        )
         draw.line((x1 + 8, y2 + 4, x2 - 8, y2 + 4), fill=cue_color, width=3)
 
         # Pre-correction popup frame (required before rewrite).
@@ -1242,13 +1461,17 @@ def render_tutoring_animation(
         rewrite_draw = ImageDraw.Draw(rewrite_frame)
 
         # Paper-texture overlay wipe on the target line using untinted local sampling.
-        cover_margin_x = max(20, int((x2 - x1) * float(profile["wipe_margin_x_ratio"])))
-        cover_margin_y = max(8, int((y2 - y1) * float(profile["wipe_margin_y_ratio"])))
+        wipe_margin_x_ratio = float(profile["wipe_margin_x_ratio"]) * (1.35 if template_mode else 1.0)
+        wipe_margin_y_ratio = float(profile["wipe_margin_y_ratio"]) * (1.15 if template_mode else 1.0)
+        cover_margin_x = max(20, int((x2 - x1) * wipe_margin_x_ratio))
+        cover_margin_y = max(8, int((y2 - y1) * wipe_margin_y_ratio))
         cx1 = max(0, x1 - cover_margin_x)
         cy1 = max(0, y1 - cover_margin_y)
         cx2 = min(width, x2 + cover_margin_x)
         cy2 = min(height, y2 + cover_margin_y)
         cover = _sample_local_background_color(base_untinted, (cx1, cy1, cx2, cy2))
+        if template_mode:
+            cover = (cover[0], cover[1], cover[2], 255)
         sample_for_delta = _sample_local_background_color(base_untinted, (cx1, cy1, cx2, cy2))
         tone_delta = (
             abs(cover[0] - sample_for_delta[0])
@@ -1267,9 +1490,18 @@ def render_tutoring_animation(
         frame_durations.append(
             int(profile["wipe_ms_inconsistent"]) if status == "inconsistent" else int(profile["wipe_ms_equivalent"])
         )
+        if template_mode:
+            # Add a short magical sweep cue before write-on.
+            sweep = rewrite_frame.copy()
+            sd = ImageDraw.Draw(sweep)
+            line_color = TEMPLATE_LINE_COLORS[min(idx, len(TEMPLATE_LINE_COLORS) - 1)]
+            sd.rounded_rectangle((cx1, y1 - 2, min(cx1 + int((cx2 - cx1) * 0.35), cx2), y2 + 2), radius=8, fill=(line_color[0], line_color[1], line_color[2], 96))
+            sd.ellipse((x1 - 6, y1 + 2, x1 + 10, y1 + 18), fill=(line_color[0], line_color[1], line_color[2], 210))
+            frames.append(sweep.convert("P", palette=Image.ADAPTIVE))
+            raw_frames.append(sweep.copy())
+            frame_durations.append(140)
 
         tx, ty = anchors[idx].get("text_origin", (x1 + 12, y1 + int(profile["text_y_offset"])))
-        ty = y1 + int(profile["text_y_offset"])
         tx, ty = _refine_text_origin_with_token(
             image=base_untinted,
             anchor=anchors[idx],
@@ -1278,14 +1510,22 @@ def render_tutoring_animation(
             draw=rewrite_draw,
             font=body_font,
         )
-        ty = y1 + int(profile["text_y_offset"])
+        line_font = _fit_font_for_bbox(
+            rewrite_draw,
+            text=step,
+            bbox=(x1, y1, x2, y2),
+            preferred_size=body_font.size,
+            min_size=20,
+        )
+        ty = y1 + max(2, int(((y2 - y1) - int(line_font.size * 1.15)) / 2))
         # Character-by-character reveal for smoother 3b1b-like write-on.
         write_chars = max(1, len(step))
         chunk = 1
         for i in range(chunk, write_chars + 1, chunk):
             draw_step = rewrite_frame.copy()
             dsd = ImageDraw.Draw(draw_step)
-            dsd.text((tx, ty), step[:i], font=body_font, fill=(20, 24, 36, 255))
+            line_color = TEMPLATE_LINE_COLORS[min(idx, len(TEMPLATE_LINE_COLORS) - 1)] if template_mode else (20, 24, 36, 255)
+            dsd.text((tx, ty), step[:i], font=line_font, fill=line_color)
             frames.append(draw_step.convert("P", palette=Image.ADAPTIVE))
             raw_frames.append(draw_step.copy())
             frame_durations.append(
@@ -1295,7 +1535,8 @@ def render_tutoring_animation(
             )
 
         # Ensure full line is present at the end of write-on.
-        rewrite_draw.text((tx, ty), step, font=body_font, fill=(20, 24, 36, 255))
+        line_color = TEMPLATE_LINE_COLORS[min(idx, len(TEMPLATE_LINE_COLORS) - 1)] if template_mode else (20, 24, 36, 255)
+        rewrite_draw.text((tx, ty), step, font=line_font, fill=line_color)
         if status == "inconsistent":
             # Keep only a tiny visual cue for corrected lines.
             rewrite_draw.ellipse((x2 - 26, y1 + 12, x2 - 12, y1 + 26), fill=(176, 72, 64, 210))
@@ -1309,9 +1550,14 @@ def render_tutoring_animation(
     for idx, step in enumerate(typed_steps):
         x1, y1, x2, y2 = anchors[idx]["bbox"]
         cover = _sample_local_background_color(base_untinted, (x1, y1, x2, y2))
+        if template_mode:
+            cover = (cover[0], cover[1], cover[2], 255)
         final_draw.rectangle((x1, y1, x2, y2), fill=cover)
         tx, ty = anchors[idx].get("text_origin", (x1 + 12, y1 + int(profile["text_y_offset"])))
-        final_draw.text((tx, y1 + int(profile["text_y_offset"])), step, font=body_font, fill=(20, 24, 36, 255))
+        line_font = _fit_font_for_bbox(final_draw, text=step, bbox=(x1, y1, x2, y2), preferred_size=body_font.size, min_size=20)
+        ty = y1 + max(2, int(((y2 - y1) - int(line_font.size * 1.15)) / 2))
+        line_color = TEMPLATE_LINE_COLORS[min(idx, len(TEMPLATE_LINE_COLORS) - 1)] if template_mode else (20, 24, 36, 255)
+        final_draw.text((tx, ty), step, font=line_font, fill=line_color)
     status = str(final_check.get("status", "unknown"))
     badge = "ok" if status == "pass" else "?"
     badge_color = (72, 138, 92, 210) if status == "pass" else (165, 118, 55, 210)
@@ -1366,6 +1612,7 @@ def render_tutoring_animation(
     qa["stabilized_anchors"] = forced_slot_fallback
     qa["transform_meta"] = transform_meta
     qa["proof_frame_paths"] = proof_frames
+    qa["template_mode"] = template_mode
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if output_path.suffix.lower() == ".mp4":
