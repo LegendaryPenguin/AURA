@@ -17,9 +17,7 @@ _ALLOWED_ANALYZE_KEYS = {
     "request_id",
     "session_id",
     "image_base64",
-    "image_b64",
     "audio_base64",
-    "audio_b64",
     "audio_format",
     "query",
     "capture_ts_ms",
@@ -50,12 +48,12 @@ async def _extract_request_payload(request: Request) -> dict[str, Any]:
     if "multipart/form-data" in content_type:
         form = await request.form()
 
-        image_b64 = form.get("image_b64") or form.get("image_base64")
-        if image_b64 is None:
+        image_base64 = form.get("image_base64")
+        if image_base64 is None:
             image_upload = form.get("image") or form.get("image_file") or form.get("file")
             if image_upload is not None and hasattr(image_upload, "read"):
                 image_bytes = await image_upload.read()
-                image_b64 = base64.b64encode(image_bytes).decode("ascii")
+                image_base64 = base64.b64encode(image_bytes).decode("ascii")
 
         query = _as_text(form.get("query"))
         if query is None:
@@ -65,8 +63,8 @@ async def _extract_request_payload(request: Request) -> dict[str, Any]:
         session_id = _as_text(form.get("session_id")) or "local"
 
         return {
-            "image_b64": image_b64,
-            "audio_b64": form.get("audio_b64") or form.get("audio_base64"),
+            "image_base64": image_base64,
+            "audio_base64": form.get("audio_base64"),
             "query": query,
             "request_id": request_id,
             "session_id": session_id,
@@ -98,13 +96,13 @@ async def _extract_request_payload(request: Request) -> dict[str, Any]:
     if request_id is None or session_id is None:
         raise ValueError("request_id and session_id must be non-empty strings")
 
-    image_b64 = body.get("image_base64") or body.get("image_b64")
-    if image_b64 is None:
+    image_base64 = body.get("image_base64")
+    if image_base64 is None:
         raise ValueError("image_base64 is required")
 
     return {
-        "image_b64": image_b64,
-        "audio_b64": body.get("audio_base64") or body.get("audio_b64"),
+        "image_base64": image_base64,
+        "audio_base64": body.get("audio_base64"),
         "query": query,
         "request_id": request_id,
         "session_id": session_id,
@@ -142,7 +140,7 @@ async def _run_snapshot_pipeline(request: Request, context: PipelineContext) -> 
 async def analyze(request: Request) -> JSONResponse:
     try:
         payload = await _extract_request_payload(request)
-        image_bytes = _decode_image_b64(payload.get("image_b64"))
+        image_bytes = _decode_image_b64(payload.get("image_base64"))
     except ValueError as exc:
         return JSONResponse(
             status_code=422,
@@ -158,7 +156,7 @@ async def analyze(request: Request) -> JSONResponse:
         query=payload.get("query"),
         response={
             "image_base64": base64.b64encode(image_bytes).decode("ascii"),
-            "audio_base64": payload.get("audio_b64"),
+            "audio_base64": payload.get("audio_base64"),
             "request_id": payload.get("request_id", str(uuid4())),
             "session_id": payload.get("session_id", "local"),
             "capture_ts_ms": payload.get("capture_ts_ms"),

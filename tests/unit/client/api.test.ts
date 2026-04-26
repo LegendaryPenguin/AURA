@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiClientError, postAnalyze } from '../../../client/src/services/api';
+import {
+  ApiClientError,
+  postAnalyze,
+  setProcessingModel,
+} from '../../../client/src/services/api';
 import type { AnalysisRequest } from '../../../client/src/types/overlay';
 
 const validRequest: AnalysisRequest = {
@@ -14,6 +18,7 @@ const validRequest: AnalysisRequest = {
 describe('api response validation', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    setProcessingModel('qwen3b');
   });
 
   it('accepts schema-valid analyze response', async () => {
@@ -79,5 +84,26 @@ describe('api response validation', () => {
     } as Response);
 
     await expect(postAnalyze(validRequest)).rejects.toBeInstanceOf(ApiClientError);
+  });
+
+  it('routes analyze requests to selected model backend', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        request_id: 'req-1',
+        session_id: 'session-1',
+        created_at: '2026-01-01T00:00:00Z',
+        overlays: [],
+      }),
+    } as Response);
+
+    setProcessingModel('moondream2');
+    await postAnalyze(validRequest);
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/api/model/moondream2/analyze'),
+      expect.any(Object),
+    );
   });
 });

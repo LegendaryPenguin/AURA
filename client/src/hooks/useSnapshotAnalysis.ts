@@ -25,6 +25,7 @@ export interface UseSnapshotAnalysisState {
 
 export interface UseSnapshotAnalysisReturn extends UseSnapshotAnalysisState {
   runAnalysis: (input: Omit<SnapshotAnalysisInput, "imageBase64" | "audio">) => Promise<OverlayResponse>;
+  cancel: () => void;
   reset: () => void;
 }
 
@@ -63,8 +64,11 @@ export function useSnapshotAnalysis(
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<ApiClientError["code"] | null>(null);
   const activeRequestIdRef = useRef<string | null>(null);
+  const activeAbortRef = useRef<AbortController | null>(null);
 
   const reset = useCallback(() => {
+    activeAbortRef.current?.abort();
+    activeAbortRef.current = null;
     activeRequestIdRef.current = null;
     setStatus("idle");
     setData(null);
@@ -72,8 +76,18 @@ export function useSnapshotAnalysis(
     setErrorCode(null);
   }, []);
 
+  const cancel = useCallback(() => {
+    activeAbortRef.current?.abort();
+    activeAbortRef.current = null;
+    activeRequestIdRef.current = null;
+    setStatus("idle");
+  }, []);
+
   const runAnalysis = useCallback(
     async (input: Omit<SnapshotAnalysisInput, "imageBase64" | "audio">): Promise<OverlayResponse> => {
+      activeAbortRef.current?.abort();
+      const abortController = new AbortController();
+      activeAbortRef.current = abortController;
       const requestId = nextRequestId();
       activeRequestIdRef.current = requestId;
       setStatus("loading");
@@ -96,12 +110,13 @@ export function useSnapshotAnalysis(
           audio,
         );
 
-        const response = await postAnalyze(requestPayload);
+        const response = await postAnalyze(requestPayload, { signal: abortController.signal });
 
         if (activeRequestIdRef.current !== requestId) {
           throw new ApiClientError("A newer analyze request superseded this result.", "UNKNOWN_ERROR");
         }
 
+        activeAbortRef.current = null;
         setData(response);
         setStatus("success");
         return response;
@@ -114,6 +129,7 @@ export function useSnapshotAnalysis(
             ? unknownError
             : new ApiClientError("Snapshot analysis failed. Please try again.", "UNKNOWN_ERROR");
 
+        activeAbortRef.current = null;
         setStatus("error");
         setData(null);
         setError(normalizedError.message);
@@ -132,9 +148,10 @@ export function useSnapshotAnalysis(
       error,
       errorCode,
       runAnalysis,
+      cancel,
       reset,
     }),
-    [data, error, errorCode, reset, runAnalysis, status],
+    [cancel, data, error, errorCode, reset, runAnalysis, status],
   );
 
   return value;

@@ -2,7 +2,8 @@
 
 | Field       | Value                            |
 | ----------- | -------------------------------- |
-| **Status**  | `Todo`                           |
+| **Status**  | `Done`                           |
+| **Maturity**| `Verified`                       |
 | **Owner**   | _Unassigned_                     |
 | **Phase**   | Phase 5                          |
 | **Stream**  | WS4 — Inference & Tracking       |

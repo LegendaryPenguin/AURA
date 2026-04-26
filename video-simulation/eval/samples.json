@@ -1,14 +1,14 @@
 {
   "samples": [
-    { "id": "sample01", "image": "inputs/sample01.png" },
-    { "id": "sample02", "image": "inputs/sample02.png" },
-    { "id": "sample03", "image": "inputs/sample03.png" },
-    { "id": "sample04", "image": "inputs/sample04.png" },
-    { "id": "sample05", "image": "inputs/sample05.png" },
-    { "id": "sample06", "image": "inputs/sample06.png" },
-    { "id": "sample07", "image": "inputs/sample07.png" },
-    { "id": "sample08", "image": "inputs/sample08.png" },
-    { "id": "sample09", "image": "inputs/sample09.png" },
-    { "id": "sample10", "image": "inputs/sample10.png" }
+    { "id": "sample01", "image": "../tests/fixtures/images/benchmark_object_01.ppm" },
+    { "id": "sample02", "image": "../tests/fixtures/images/benchmark_object_02.ppm" },
+    { "id": "sample03", "image": "../tests/fixtures/images/benchmark_object_03.ppm" },
+    { "id": "sample04", "image": "../tests/fixtures/images/benchmark_object_04.ppm" },
+    { "id": "sample05", "image": "../tests/fixtures/images/benchmark_object_05.ppm" },
+    { "id": "sample06", "image": "../tests/fixtures/images/benchmark_object_06.ppm" },
+    { "id": "sample07", "image": "../tests/fixtures/images/benchmark_object_07.ppm" },
+    { "id": "sample08", "image": "../tests/fixtures/images/benchmark_object_08.ppm" },
+    { "id": "sample09", "image": "../tests/fixtures/images/benchmark_object_09.ppm" },
+    { "id": "sample10", "image": "../tests/fixtures/images/benchmark_object_10.ppm" }
   ]
 }

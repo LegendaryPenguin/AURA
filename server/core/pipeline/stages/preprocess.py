@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from shared.interfaces.pipeline_stage import PipelineContext, PipelineStage
-from server.utils.image_utils import decode_base64, decode_jpeg, encode_jpeg, resize_with_aspect_ratio
+from server.utils.image_utils import decode_base64, decode_jpeg, encode_jpeg
 
 
 class PreprocessStage(PipelineStage):
@@ -29,7 +29,8 @@ class PreprocessStage(PipelineStage):
 
         image = decode_jpeg(raw_bytes)
 
-        resized = resize_with_aspect_ratio(image, self._target_width, self._target_height)
+        # Phase-1 contract: pipeline emits fixed dimensions from config.
+        resized = image.resize((self._target_width, self._target_height))
         context.image = encode_jpeg(resized)
 
         return context

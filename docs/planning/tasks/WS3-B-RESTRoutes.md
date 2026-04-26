@@ -3,6 +3,7 @@
 | Field       | Value                         |
 | ----------- | ----------------------------- |
 | **Status**  | `Done`                        |
+| **Maturity**| `Verified`                    |
 | **Owner**   | `Farrell`                     |
 | **Phase**   | Phase 1                       |
 | **Stream**  | WS3 — Server API & Pipeline   |
@@ -23,7 +24,7 @@
 
 ## Work
 
-- `analyze.py`: `POST /analyze` — accept multipart or JSON body with `image_b64` and optional `audio_b64` + `query`. Delegate to snapshot pipeline. Return overlay response or error.
+- `analyze.py`: `POST /analyze` — accept multipart or JSON body with canonical `image_base64` and optional `audio_base64` + `query`. Delegate to snapshot pipeline. Return overlay response or error.
 - `health.py`: `GET /health` — return per-model readiness: `{vlm: "ready"|"loading"|"error", sam2: "ready"...}`. Aggregate status as `"healthy"` only if all required models are ready.
 - `rate_limit.py`: if an `/analyze` request arrives while one is already processing, return HTTP 429 immediately. Never queue. Use `asyncio.Lock`.
 

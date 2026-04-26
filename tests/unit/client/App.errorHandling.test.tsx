@@ -101,12 +101,12 @@ describe("App analyze failure handling", () => {
     });
   });
 
-  it("clears overlays after analyze failure", async () => {
+  it("preserves existing overlays after analyze failure", async () => {
     render(<App />);
-    const initialCalls = mocks.clearOverlays.mock.calls.length;
     fireEvent.click(screen.getByLabelText("Capture and analyze"));
     await waitFor(() => {
-      expect(mocks.clearOverlays.mock.calls.length).toBeGreaterThan(initialCalls);
+      expect(screen.getByText(/Error: request failed/i)).toBeInTheDocument();
     });
+    expect(mocks.clearOverlays).not.toHaveBeenCalled();
   });
 });

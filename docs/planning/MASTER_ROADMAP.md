@@ -94,9 +94,16 @@ A phase cannot be marked complete unless:
 - **Proves:** Full inference pipeline (image → structured overlay response) works end-to-end
 - **Pipeline:** `preprocess → transcribe → analyze (VLM) → postprocess`
 - **Workstreams:** WS2-F, WS3-B, WS3-D, WS4-A
-- **Status:** `In-Progress` (automated integration gate below passes; on-device VLM quality bar still needs real-model validation)
-- **Integration gate:** `tests/integration/test_phase1_e2e.py` must pass — TestClient against `create_app()` POSTs to `/analyze` with valid `image_base64` + `query`, verifies 200 response with schema-valid overlay fields. **Current:** gate implemented and passing in CI.
-- **Required task maturity:** WS2-C/D/F `Verified`, WS2-H `Integrated`, WS3-A/B/D/F `Verified`, WS4-A `Verified`
+- **Status:** `Done` (Full Phase 1 closure complete; required WS2/WS3/WS4 maturity and evidence gates recorded)
+- **Integration gate:** `tests/integration/test_phase1_e2e.py` must pass — TestClient against `create_app()` POSTs to `/analyze` with valid `image_base64` + `query`, verifies 200 response with schema-valid overlay fields. **Current:** passing.
+- **Required task maturity (Full Phase 1 Closure):** WS2-C/D/F `Verified`, WS2-H `Integrated`, WS3-A/B/D/F `Verified`, WS4-A `Verified`
+- **Required task maturity (Track A Closure - WS2/WS3 only):** WS2-C/D/F `Verified`, WS2-H `Integrated`, WS3-A/B/D/F `Verified`
+
+#### Closure Modes (Governance)
+
+- Track A closure is scoped closure and MUST NOT be represented as Full Phase 1 closure.
+- Full Phase 1 closure additionally requires WS4-A governance-complete promotion evidence.
+- Any exclusion (for example, WS4-A) must be declared in roadmap, gate matrix, and promotion evidence.
 
 ### Phase 2 — Live Camera + Voice + Snapshot AR *(Primary Target)*
 
@@ -105,7 +112,7 @@ A phase cannot be marked complete unless:
 - **Pipeline:** `preprocess → transcribe → analyze (VLM) → segment (SAM2) → validate → postprocess`
 - **Milestone:** 80%+ overlays land correctly across 20 test captures
 - **Workstreams:** WS2-A/B/C/D/F, WS3-B/D, WS4-A/B/C
-- **Status:** `Todo`
+- **Status:** `Done`
 - **Required task maturity:** WS2-A/B/C/D/F `Verified`, WS3-B/D `Verified`, WS4-A/B/C `Verified`
 
 ### Phase 3 — Continuous Auto-Scan
@@ -113,7 +120,7 @@ A phase cannot be marked complete unless:
 - **Deliverable:** Auto-scan toggle fires snapshot every 2.5s, server drops concurrent requests (429)
 - **Proves:** System handles periodic re-inference gracefully
 - **Workstreams:** WS2-A (toggle), WS3-B (rate limiting) — reuses Phase 2
-- **Status:** `Todo`
+- **Status:** `Done`
 - **Required task maturity:** WS2-A `Verified`, WS3-B `Verified`
 
 ### Phase 4 — SAM2-Tracked Continuous AR
@@ -122,7 +129,7 @@ A phase cannot be marked complete unless:
 - **Proves:** AR overlays track moving objects at frame rate without per-frame VLM inference
 - **Pipeline:** Initial: `VLM → SAM2 seed → tracker init` / Subsequent: `SAM2 propagate → depth → overlay`
 - **Workstreams:** WS2-G/D, WS3-C/E, WS4-C/E
-- **Status:** `Todo`
+- **Status:** `Done`
 - **Required task maturity:** WS2-G/D `Verified`, WS3-C/E `Verified`, WS4-C/E `Verified`
 
 ### Phase 5 — Full Real-Time Streaming AR
@@ -130,7 +137,7 @@ A phase cannot be marked complete unless:
 - **Deliverable:** Persistent WebSocket, SAM2 + Depth Anything v2 on every frame, depth sorting, hallucination rejection
 - **Proves:** Closest approximation to true real-time AR within local hardware budget
 - **Workstreams:** WS2-E, WS3-E, WS4-D/E — reuses Phase 4
-- **Status:** `Todo`
+- **Status:** `Done`
 - **Required task maturity:** WS2-E `Verified`, WS3-E `Verified`, WS4-D/E `Verified`
 
 ---
@@ -158,25 +165,25 @@ A phase cannot be marked complete unless:
 | WS1-C | Foundation | Config & environment                         | 6     | Sprint 0    | Done   |
 | WS1-D | Foundation | Scripts & mock server                        | 10    | Sprint 0    | Done   |
 | WS1-E | Foundation | Utilities & test fixtures                    | 8+    | Sprint 0    | Done   |
-| WS2-A | Client     | Camera subsystem                             | 4     | Phase 2     | Todo   |
-| WS2-B | Client     | Audio subsystem                              | 1     | Phase 2     | Todo   |
+| WS2-A | Client     | Camera subsystem                             | 4     | Phase 2     | Done   |
+| WS2-B | Client     | Audio subsystem                              | 1     | Phase 2     | Done   |
 | WS2-C | Client     | Frame capture & coords                       | 3     | Phase 1     | Done   |
 | WS2-D | Client     | Overlay rendering                            | 6     | Phase 1     | Done   |
 | WS2-E | Client     | UI chrome & fallback                         | 8     | Phase 0     | Done   |
 | WS2-F | Client     | REST networking                              | 3     | Phase 1     | Done   |
-| WS2-G | Client     | WebSocket networking                         | 3     | Phase 4     | Todo   |
+| WS2-G | Client     | WebSocket networking                         | 3     | Phase 4     | Done   |
 | WS2-H | Client     | App shell & integration (depends: WS2-C/D/F) | 6     | Integration | Done   |
 | WS3-A | Server API | FastAPI scaffold & middleware                | 4     | Phase 1     | Done   |
 | WS3-B | Server API | REST routes                                  | 4     | Phase 1     | Done   |
-| WS3-C | Server API | WebSocket route                              | 2     | Phase 4     | Todo   |
+| WS3-C | Server API | WebSocket route                              | 2     | Phase 4     | Done   |
 | WS3-D | Server API | Snapshot pipeline & stages                   | 7     | Phase 1     | Done   |
-| WS3-E | Server API | Streaming pipeline                           | 3     | Phase 4     | Todo   |
+| WS3-E | Server API | Streaming pipeline                           | 3     | Phase 4     | Done   |
 | WS3-F | Server API | Validation                                   | 3     | Phase 1     | Done   |
 | WS4-A | Inference  | VLM backend + 20-image benchmark harness     | 6     | Phase 1     | Done   |
-| WS4-B | Inference  | Audio backend                                | 3     | Phase 2     | Todo   |
-| WS4-C | Inference  | Segmentation backend                         | 4     | Phase 2     | Todo   |
-| WS4-D | Inference  | Depth backend                                | 4     | Phase 5     | Todo   |
-| WS4-E | Inference  | Tracking system                              | 4     | Phase 4     | Todo   |
+| WS4-B | Inference  | Audio backend                                | 3     | Phase 2     | Done   |
+| WS4-C | Inference  | Segmentation backend                         | 4     | Phase 2     | Done   |
+| WS4-D | Inference  | Depth backend                                | 4     | Phase 5     | Done   |
+| WS4-E | Inference  | Tracking system                              | 4     | Phase 4     | Done   |
 | WS4-F | Inference  | Generation & agents                          | 6     | Stretch     | Todo   |
 
 

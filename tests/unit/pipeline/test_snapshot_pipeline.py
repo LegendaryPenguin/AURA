@@ -13,6 +13,7 @@ from PIL import Image
 from shared.interfaces.pipeline_stage import PipelineContext, PipelineStage
 from server.core.pipeline.snapshot_pipeline import PipelineTimeoutError, SnapshotPipeline
 from server.core.pipeline.orchestrator import build_snapshot_pipeline, get_pipeline
+from server.core.pipeline.streaming_pipeline import StreamingPipeline
 from server.core.pipeline.stages.preprocess import PreprocessStage
 from server.core.pipeline.stages.transcribe import TranscribeStage
 from server.core.pipeline.stages.analyze import AnalyzeStage
@@ -404,9 +405,9 @@ class TestOrchestrator:
         pipeline = get_pipeline(backend, config)
         assert isinstance(pipeline, SnapshotPipeline)
 
-    def test_phase_4_raises_not_implemented(self) -> None:
+    def test_phase_4_returns_streaming_pipeline(self) -> None:
         backend = _vlm_backend()
         config = _pipeline_config()
         config["orchestrator"]["phase"] = 4
-        with pytest.raises(NotImplementedError, match="phase 4"):
-            get_pipeline(backend, config)
+        pipeline = get_pipeline(backend, config)
+        assert isinstance(pipeline, StreamingPipeline)

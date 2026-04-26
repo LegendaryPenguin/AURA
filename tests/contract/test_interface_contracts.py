@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from server.api.routes import api_router
 from shared.interfaces.inference_base import InferenceBackend
 from shared.interfaces.pipeline_stage import PipelineContext, PipelineStage
 from shared.interfaces.tracker_base import TrackerBackend, TrackerState
@@ -38,6 +42,18 @@ class NoOpInferenceBackend(InferenceBackend):
 
 class NoOpStage(PipelineStage):
     def execute(self, context: PipelineContext) -> PipelineContext:
+        return context
+
+
+class _ContractSnapshotPipeline:
+    def run(self, context: PipelineContext, session_id: str = "") -> PipelineContext:  # noqa: ARG002
+        context.response = {
+            "request_id": "contract-req",
+            "session_id": "contract-session",
+            "created_at": "2020-01-01T00:00:00+00:00",
+            "model_version": "contract-model",
+            "overlays": [],
+        }
         return context
 
 
@@ -193,6 +209,20 @@ def _validate_schema_node(value: Any, node: dict[str, Any], root_schema: dict[st
             raise AssertionError(f"{path}: {value} <= exclusiveMinimum {exclusive_minimum}")
         return
 
+    if expected_type == "integer":
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise AssertionError(f"{path}: expected integer")
+        minimum = node.get("minimum")
+        if isinstance(minimum, (int, float)) and value < minimum:
+            raise AssertionError(f"{path}: {value} < minimum {minimum}")
+        maximum = node.get("maximum")
+        if isinstance(maximum, (int, float)) and value > maximum:
+            raise AssertionError(f"{path}: {value} > maximum {maximum}")
+        exclusive_minimum = node.get("exclusiveMinimum")
+        if isinstance(exclusive_minimum, (int, float)) and value <= exclusive_minimum:
+            raise AssertionError(f"{path}: {value} <= exclusiveMinimum {exclusive_minimum}")
+        return
+
     if expected_type == "boolean":
         if not isinstance(value, bool):
             raise AssertionError(f"{path}: expected boolean")
@@ -212,3 +242,60 @@ def test_golden_response_fixtures_match_overlay_response_schema() -> None:
     for fixture_path in fixture_paths:
         payload = json.loads(fixture_path.read_text(encoding="utf-8"))
         _validate_schema_node(payload, schema, schema, fixture_path.name)
+
+
+def test_analysis_request_schema_accepts_canonical_payload() -> None:
+    schema_path = PROJECT_ROOT / "shared/schemas/analysis_request.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    payload = {
+        "request_id": "req-1",
+        "session_id": "sess-1",
+        "image_base64": "aW1hZ2U=",
+        "audio_base64": "YXVkaW8=",
+        "audio_format": "wav",
+        "query": "Locate hazard",
+        "capture_ts_ms": 1700000000000,
+        "frame_size": {"width": 1280, "height": 720},
+        "client": {"platform": "web"},
+    }
+    _validate_schema_node(payload, schema, schema, "analysis_request")
+
+
+def test_analysis_request_schema_rejects_alias_fields() -> None:
+    schema_path = PROJECT_ROOT / "shared/schemas/analysis_request.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    payload = {
+        "request_id": "req-1",
+        "session_id": "sess-1",
+        "image_b64": "aW1hZ2U=",
+        "query": "Locate hazard",
+        "capture_ts_ms": 1700000000000,
+    }
+    try:
+        _validate_schema_node(payload, schema, schema, "analysis_request")
+    except AssertionError as exc:
+        message = str(exc)
+        assert "unexpected fields" in message or "missing required field 'image_base64'" in message
+    else:
+        raise AssertionError("Schema validator accepted alias field image_b64")
+
+
+def test_analyze_route_rejects_alias_fields() -> None:
+    app = FastAPI()
+    app.include_router(api_router)
+    app.state.snapshot_pipeline = _ContractSnapshotPipeline()
+    with TestClient(app) as client:
+        response = client.post(
+            "/analyze",
+            json={
+                "request_id": "req-1",
+                "session_id": "sess-1",
+                "image_b64": "aW1hZ2U=",
+                "query": "Locate hazard",
+                "capture_ts_ms": 1700000000000,
+            },
+        )
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == 422
+    assert "unexpected request fields" in body["error"]

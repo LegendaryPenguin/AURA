@@ -29,6 +29,9 @@ fi
 echo "Running contract tests"
 "${PYTHON_BIN}" -m pytest "${ROOT_DIR}/tests/contract/" -v
 
+echo "Running integration tests"
+"${PYTHON_BIN}" -m pytest "${ROOT_DIR}/tests/integration/" -v
+
 echo "Running client vitest suite"
 "${NPM_BIN}" --prefix "${ROOT_DIR}/client" run test
 

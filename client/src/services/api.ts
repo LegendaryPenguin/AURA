@@ -7,8 +7,14 @@ const REQUEST_TIMEOUT_MS = (() => {
 const DEFAULT_HEADERS = { "Content-Type": "application/json" } as const;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
 const REAL_API_BASE_URL = import.meta.env.VITE_API_BASE_URL_REAL?.trim() ?? "";
+const MODEL_BASE_URLS = {
+  qwen3b: import.meta.env.VITE_API_BASE_URL_QWEN3B?.trim() ?? "/api/model/qwen3b",
+  qwen7b: import.meta.env.VITE_API_BASE_URL_QWEN7B?.trim() ?? "/api/model/qwen7b",
+  moondream2: import.meta.env.VITE_API_BASE_URL_MOONDREAM2?.trim() ?? "/api/model/moondream2",
+} as const;
 
 export type BackendMode = "real";
+export type ProcessingModel = "qwen3b" | "qwen7b" | "moondream2";
 
 export type ApiErrorCode =
   | "BAD_REQUEST"
@@ -51,24 +57,44 @@ const normalizeBaseUrl = (value: string): string => {
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
 };
 
+let selectedProcessingModel: ProcessingModel = "qwen3b";
+
 export const getBackendMode = (): BackendMode => "real";
 
 export const setBackendMode = (_mode: BackendMode): void => {
   // Real backend is mandatory; ignore runtime mode changes.
 };
 
-export const getBackendTarget = (): { mode: BackendMode; baseUrl: string } => {
-  const baseUrl = normalizeBaseUrl(REAL_API_BASE_URL) || normalizeBaseUrl(API_BASE_URL);
-  return { mode: "real", baseUrl };
+export const getProcessingModel = (): ProcessingModel => selectedProcessingModel;
+
+export const setProcessingModel = (model: ProcessingModel): void => {
+  selectedProcessingModel = model;
+};
+
+export const getBackendTarget = (): { mode: BackendMode; baseUrl: string; model: ProcessingModel } => {
+  const modelBaseUrl = normalizeBaseUrl(MODEL_BASE_URLS[selectedProcessingModel]);
+  const fallbackBaseUrl = normalizeBaseUrl(REAL_API_BASE_URL) || normalizeBaseUrl(API_BASE_URL);
+  const baseUrl = modelBaseUrl || fallbackBaseUrl;
+  return { mode: "real", baseUrl, model: selectedProcessingModel };
 };
 
 const buildUrl = (path: string): string => {
   const { baseUrl } = getBackendTarget();
+  return buildUrlForBase(path, baseUrl);
+};
+
+const buildUrlForBase = (path: string, baseUrl: string): string => {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   if (!baseUrl) {
     return `/api${normalizedPath}`;
   }
   return `${baseUrl}${normalizedPath}`;
+};
+
+const getModelBaseUrl = (model: ProcessingModel): string => {
+  const modelBaseUrl = normalizeBaseUrl(MODEL_BASE_URLS[model]);
+  const fallbackBaseUrl = normalizeBaseUrl(REAL_API_BASE_URL) || normalizeBaseUrl(API_BASE_URL);
+  return modelBaseUrl || fallbackBaseUrl;
 };
 
 const mapHttpError = (status: number): ApiClientError => {
@@ -170,8 +196,20 @@ const validateHealthResponse = (value: unknown): HealthResponse => {
   return value as unknown as HealthResponse;
 };
 
-async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
+interface RequestOptions {
+  signal?: AbortSignal;
+}
+
+async function fetchJson(url: string, init: RequestInit, options?: RequestOptions): Promise<unknown> {
   const controller = new AbortController();
+  const externalSignal = options?.signal;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
   const timeoutHandle = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const response = await fetch(url, {
@@ -212,17 +250,29 @@ async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
   }
 }
 
-export async function postAnalyze(payload: AnalysisRequest): Promise<OverlayResponse> {
+export async function postAnalyze(payload: AnalysisRequest, options?: RequestOptions): Promise<OverlayResponse> {
   const raw = await fetchJson(buildUrl("/analyze"), {
     method: "POST",
     body: JSON.stringify(payload),
-  });
+  }, options);
   return validateOverlayResponse(raw);
 }
 
-export async function getHealth(): Promise<HealthResponse> {
+export async function getHealth(options?: RequestOptions): Promise<HealthResponse> {
   const raw = await fetchJson(buildUrl("/health"), {
     method: "GET",
-  });
+  }, options);
+  return validateHealthResponse(raw);
+}
+
+export async function getHealthForModel(
+  model: ProcessingModel,
+  options?: RequestOptions,
+): Promise<HealthResponse> {
+  const raw = await fetchJson(
+    buildUrlForBase("/health", getModelBaseUrl(model)),
+    { method: "GET" },
+    options,
+  );
   return validateHealthResponse(raw);
 }

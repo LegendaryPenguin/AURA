@@ -145,12 +145,26 @@ def _qwen_vl_extract_lines(image_path: Path) -> dict[str, Any]:
 
 
 def run_stage(image_path: Path) -> dict[str, Any]:
+    strict_mode = os.getenv("VIDEO_SIM_STRICT_MODE", "0") == "1"
     vlm_result = _qwen_vl_extract_lines(image_path)
     lines = vlm_result.get("lines", [])
     avg_confidence = sum(float(x.get("confidence", 0.0)) for x in lines) / len(lines) if lines else 0.0
     parse_status = "ok" if lines else "error"
     parser = "qwen2.5-vl" if lines else "none"
     error_code = vlm_result.get("error_code")
+    if strict_mode and parse_status != "ok":
+        notes = list(vlm_result.get("notes", []))
+        notes.append("strict_mode_parse_failure")
+        return {
+            "stage": "vision_parse",
+            "parser": "none",
+            "model": vlm_result.get("model", "unavailable"),
+            "lines": [],
+            "avg_confidence": 0.0,
+            "notes": notes,
+            "parse_status": "error",
+            "error_code": error_code or "strict_mode_parse_failure",
+        }
     return {
         "stage": "vision_parse",
         "parser": parser,

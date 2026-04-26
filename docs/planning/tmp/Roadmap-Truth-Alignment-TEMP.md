@@ -1,6 +1,15 @@
-# Roadmap Truth Alignment (Temporary)
+# ARCHIVED — Roadmap Truth Alignment (Temporary Snapshot)
 
-This temporary document captures the current truth-alignment direction and the command automation bridge while canonical docs are being updated.
+This archived temporary snapshot captured a transition state while canonical docs were being updated.
+
+## Archive Notice
+
+- This file is **non-authoritative** and retained for historical context only.
+- Do not use this file for current promotion, phase, or maturity decisions.
+- Use canonical planning docs:
+  - `docs/planning/MASTER_ROADMAP.md`
+  - `docs/planning/GLOBAL_ALIGNMENT_GOVERNANCE.md`
+  - `docs/planning/WORKFLOW_CHECKLIST.md`
 
 ## Purpose
 

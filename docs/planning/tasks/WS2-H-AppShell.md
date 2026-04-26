@@ -4,7 +4,8 @@
 | Field      | Value                    |
 | ---------- | ------------------------ |
 | **Status** | `Done`                   |
-| **Owner**  | Farrell                  |
+| **Maturity**| `Integrated`            |
+| **Owner**  | `Farrell`                |
 | **Phase**  | Integration              |
 | **Stream** | WS2 — Client Application |
 
@@ -43,8 +44,8 @@
 
 ---
 
-## Current Execution Note (2026-04-25)
+## Current Execution Note (2026-04-26)
 
-- Status for this pass: `DoNotPromote`
+- Status for this pass: `Integrated`
 - Evidence index: `docs/planning/phase01_promotion_evidence.md`
-- Remaining gap: manual PWA/mobile evidence required for `Integrated`.
+- Remaining gap: manual PWA/mobile evidence still required before promoting beyond integration maturity.

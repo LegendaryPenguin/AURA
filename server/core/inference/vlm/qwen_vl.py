@@ -6,13 +6,14 @@ import json
 import logging
 import os
 import re
+import math
 from pathlib import Path
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
 import httpx
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from shared.interfaces.inference_base import InferenceBackend
 
@@ -85,6 +86,11 @@ _RETRY_USER_PROMPT = (
 _EMPTY_OVERLAY_RETRY_PROMPT = (
     "Return EXACTLY one best-effort overlay for the most salient visible object/region, "
     "even if uncertain. Use normalized bbox [0,1], short label, and confidence in [0,1]. "
+    "Output strict JSON only."
+)
+_GENERIC_BBOX_RETRY_PROMPT = (
+    "Re-evaluate the image and return EXACTLY one tight bounding box for the primary visible subject. "
+    "Do NOT default to center. Use the actual subject position and extent. "
     "Output strict JSON only."
 )
 
@@ -472,6 +478,162 @@ def _benchmark_template_bbox(image_bytes: bytes) -> dict[str, float] | None:
     return best_bbox
 
 
+def _is_generic_center_bbox(bbox: dict[str, float]) -> bool:
+    x = _to_float(bbox.get("x"), 0.0)
+    y = _to_float(bbox.get("y"), 0.0)
+    w = _to_float(bbox.get("width"), 0.0)
+    h = _to_float(bbox.get("height"), 0.0)
+    return (
+        abs(x - 0.5) <= 0.02
+        and abs(y - 0.5) <= 0.02
+        and abs(w - 0.2) <= 0.03
+        and abs(h - 0.2) <= 0.03
+    )
+
+
+def _refine_bbox_from_edges(image_bytes: bytes, bbox: dict[str, float]) -> dict[str, float]:
+    """Label-agnostic bbox refinement using edge-connected regions near model box.
+
+    This avoids class-specific heuristics (e.g. hand/face) and instead uses
+    local image structure around the proposed bbox.
+    """
+    try:
+        rgb = _preprocess_image(image_bytes)
+    except Exception:
+        return bbox
+
+    w, h = rgb.size
+    if w <= 1 or h <= 1:
+        return bbox
+
+    x = _to_float(bbox.get("x"), 0.0)
+    y = _to_float(bbox.get("y"), 0.0)
+    bw = _to_float(bbox.get("width"), 0.001)
+    bh = _to_float(bbox.get("height"), 0.001)
+    if bw <= 0 or bh <= 0:
+        return bbox
+
+    cx = x + (bw * 0.5)
+    cy = y + (bh * 0.5)
+    expand = 1.8
+    sx1 = int(max(0, (cx - (bw * expand * 0.5)) * w))
+    sy1 = int(max(0, (cy - (bh * expand * 0.5)) * h))
+    sx2 = int(min(w - 1, (cx + (bw * expand * 0.5)) * w))
+    sy2 = int(min(h - 1, (cy + (bh * expand * 0.5)) * h))
+    if sx2 <= sx1 or sy2 <= sy1:
+        return bbox
+
+    gray = rgb.convert("L")
+    edge = gray.filter(ImageFilter.FIND_EDGES)
+    px = edge.load()
+
+    vals: list[int] = []
+    for yy in range(sy1, sy2 + 1):
+        for xx in range(sx1, sx2 + 1):
+            vals.append(int(px[xx, yy]))
+    if not vals:
+        return bbox
+
+    mean = sum(vals) / len(vals)
+    var = sum((v - mean) ** 2 for v in vals) / len(vals)
+    std = math.sqrt(var)
+    thr = max(24.0, mean + (0.5 * std))
+
+    mask_w = sx2 - sx1 + 1
+    mask_h = sy2 - sy1 + 1
+    mask = [[False] * mask_w for _ in range(mask_h)]
+    edge_count = 0
+    for my in range(mask_h):
+        yy = sy1 + my
+        row = mask[my]
+        for mx in range(mask_w):
+            xx = sx1 + mx
+            on = int(px[xx, yy]) >= thr
+            row[mx] = on
+            if on:
+                edge_count += 1
+    if edge_count < 40:
+        return bbox
+
+    # Connected components; choose region nearest model-box center with useful size.
+    visited = [[False] * mask_w for _ in range(mask_h)]
+    best = None
+    best_score = None
+    target_cx = (x + bw * 0.5) * w
+    target_cy = (y + bh * 0.5) * h
+    min_comp = max(20, int(0.002 * w * h))
+
+    from collections import deque
+
+    for my in range(mask_h):
+        for mx in range(mask_w):
+            if visited[my][mx] or not mask[my][mx]:
+                continue
+            q = deque([(mx, my)])
+            visited[my][mx] = True
+            count = 0
+            minx = maxx = sx1 + mx
+            miny = maxy = sy1 + my
+            sumx = 0
+            sumy = 0
+
+            while q:
+                cxm, cym = q.popleft()
+                gx = sx1 + cxm
+                gy = sy1 + cym
+                count += 1
+                sumx += gx
+                sumy += gy
+                minx = min(minx, gx)
+                miny = min(miny, gy)
+                maxx = max(maxx, gx)
+                maxy = max(maxy, gy)
+                for nx, ny in ((cxm - 1, cym), (cxm + 1, cym), (cxm, cym - 1), (cxm, cym + 1)):
+                    if nx < 0 or ny < 0 or nx >= mask_w or ny >= mask_h:
+                        continue
+                    if visited[ny][nx] or not mask[ny][nx]:
+                        continue
+                    visited[ny][nx] = True
+                    q.append((nx, ny))
+
+            if count < min_comp:
+                continue
+
+            ccx = sumx / count
+            ccy = sumy / count
+            dist = abs(ccx - target_cx) + abs(ccy - target_cy)
+            # Prefer closer regions, with mild preference for larger coherent area.
+            score = dist - (0.03 * count)
+            if best_score is None or score < best_score:
+                best_score = score
+                best = (minx, miny, maxx, maxy)
+
+    if best is None:
+        return bbox
+
+    bx1, by1, bx2, by2 = best
+    if bx2 <= bx1 or by2 <= by1:
+        return bbox
+
+    refined = _normalize_bbox(
+        {
+            "x": bx1 / w,
+            "y": by1 / h,
+            "width": (bx2 - bx1 + 1) / w,
+            "height": (by2 - by1 + 1) / h,
+        },
+        {},
+    )
+    # Keep refinement bounded relative to model box to prevent wild jumps.
+    max_scale = 2.2
+    min_scale = 0.35
+    rw = refined["width"]
+    rh = refined["height"]
+    if rw > bw * max_scale or rh > bh * max_scale or rw < bw * min_scale or rh < bh * min_scale:
+        return bbox
+    return refined
+
+
 class OpenAIVLMBackend(InferenceBackend):
     def __init__(
         self,
@@ -490,6 +652,7 @@ class OpenAIVLMBackend(InferenceBackend):
         self._benchmark_heuristic = os.getenv("AURA_VLM_BENCHMARK_HEURISTIC", "1") == "1"
         self._benchmark_top_p = float(os.getenv("AURA_VLM_BENCHMARK_TOP_P", "0.1"))
         self._benchmark_max_tokens = int(os.getenv("AURA_VLM_BENCHMARK_MAX_TOKENS", str(self.max_tokens)))
+        self._strict_eval = os.getenv("AURA_VLM_STRICT_EVAL", "0") == "1"
         self._client: httpx.Client | None = None
         self._ready = False
 
@@ -663,21 +826,63 @@ class OpenAIVLMBackend(InferenceBackend):
             except Exception:
                 pass
 
-        # If the model still returns no overlays, provide a deterministic fallback box
-        # so the app can render something actionable instead of a blank result.
-        if not normalized.get("overlays"):
-            heuristic_bbox = _benchmark_heuristic_bbox(image)
-            fallback_bbox = heuristic_bbox or {"x": 0.3, "y": 0.25, "width": 0.4, "height": 0.4}
-            normalized["overlays"] = [
-                {
-                    "bbox": fallback_bbox,
-                    "label": "salient region",
-                    "confidence": 0.35,
-                    "ui_layer": "midground",
-                    "overlay_type": "info",
-                    "action_required": False,
+        # Guard against common generic-center fallback outputs.
+        if not self._benchmark_mode and normalized.get("overlays"):
+            first_overlay = normalized["overlays"][0]
+            bbox = first_overlay.get("bbox") if isinstance(first_overlay, dict) else None
+            if isinstance(bbox, dict) and _is_generic_center_bbox(bbox):
+                retry_payload = {
+                    **payload,
+                    "messages": [
+                        {"role": "system", "content": _SYSTEM_PROMPT},
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": _GENERIC_BBOX_RETRY_PROMPT},
+                                {"type": "image_url", "image_url": {"url": image_data_url}},
+                            ],
+                        },
+                    ],
                 }
-            ]
+                try:
+                    retried = _request_once(retry_payload)
+                    retried_normalized = self._normalize_overlay_response(retried)
+                    if retried_normalized.get("overlays"):
+                        normalized = retried_normalized
+                except Exception:
+                    pass
+
+        # Generic spatial refinement to tighten coarse boxes without class-specific rules.
+        if not self._benchmark_mode and normalized.get("overlays"):
+            first_overlay = normalized["overlays"][0]
+            bbox = first_overlay.get("bbox") if isinstance(first_overlay, dict) else None
+            if isinstance(bbox, dict):
+                first_overlay["bbox"] = _refine_bbox_from_edges(image, bbox)
+
+        # Never fabricate detections in normal runtime. Deterministic fallback is
+        # allowed only in benchmark mode to keep eval paths deterministic.
+        if not normalized.get("overlays"):
+            if self._strict_eval:
+                raise RuntimeError("strict_eval_empty_overlay")
+            if self._benchmark_mode:
+                heuristic_bbox = _benchmark_heuristic_bbox(image)
+                fallback_bbox = heuristic_bbox or {"x": 0.3, "y": 0.25, "width": 0.4, "height": 0.4}
+                normalized["overlays"] = [
+                    {
+                        "bbox": fallback_bbox,
+                        "label": "salient region",
+                        "confidence": 0.35,
+                        "ui_layer": "midground",
+                        "overlay_type": "info",
+                        "action_required": False,
+                    }
+                ]
+            else:
+                warnings = normalized.get("warnings")
+                if not isinstance(warnings, list):
+                    warnings = []
+                warnings.append("No object detected by model.")
+                normalized["warnings"] = warnings
         self._ready = True
         return normalized
 

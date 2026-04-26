@@ -184,6 +184,7 @@ def main() -> None:
     output_dir = (script_dir / args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    strict_mode = subprocess.os.environ.get("VIDEO_SIM_STRICT_MODE", "0") == "1"
 
     if not image_path.exists():
         raise FileNotFoundError(f"Image not found: {image_path}")
@@ -202,6 +203,9 @@ def main() -> None:
 
     manual_steps_file = args.use_edited_steps or args.manual_steps
     if vision.get("parse_status") != "ok" and not manual_steps_file:
+        if strict_mode:
+            notes = "; ".join(str(n) for n in vision.get("notes", [])) or "unknown"
+            raise RuntimeError(f"Strict mode: parse failed with no manual fallback. Notes: {notes}")
         if args.prepare_steps:
             template_steps = [
                 "6x+20+4(2x)=48",
@@ -232,6 +236,12 @@ def main() -> None:
         )
 
     if manual_steps_file and vision.get("parse_status") != "ok":
+        allow_manual_in_strict = subprocess.os.environ.get("VIDEO_SIM_ALLOW_MANUAL_FALLBACK_IN_STRICT", "0") == "1"
+        if strict_mode and not allow_manual_in_strict:
+            raise RuntimeError(
+                "Strict mode: manual fallback is disabled. "
+                "Set VIDEO_SIM_ALLOW_MANUAL_FALLBACK_IN_STRICT=1 to explicitly allow it."
+            )
         edited_payload = json.loads(Path(manual_steps_file).read_text(encoding="utf-8"))
         manual_steps = [str(s).strip() for s in edited_payload.get("editable_steps", []) if str(s).strip()]
         if not manual_steps:

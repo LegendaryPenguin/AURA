@@ -47,13 +47,15 @@ def _get_job(job_id: str) -> dict[str, Any] | None:
         return dict(state) if state else None
 
 
-def _run_video_sim_job(job_id: str, image_path: Path) -> None:
+def _run_video_sim_job(job_id: str, image_path: Path, *, fast_preview: bool) -> None:
     _set_job(
         job_id,
         status="running",
         updated_at=_now_iso(),
         started_at=_now_iso(),
-        message="rendering_video (typically 30-90s)",
+        stage="analyzing",
+        message="Analyzing capture",
+        eta_seconds=45 if fast_preview else 75,
     )
     logger.info("video-sim job %s started for image %s", job_id, image_path)
     _VIDEO_SIM_OUTPUTS.mkdir(parents=True, exist_ok=True)
@@ -70,9 +72,18 @@ def _run_video_sim_job(job_id: str, image_path: Path) -> None:
         "--style",
         "side_by_side_blueprint",
     ]
+    if fast_preview:
+        command.append("--preview")
     try:
         env = dict(subprocess.os.environ)
         env["AURA_VIDEO_SIM_FORCE_INPUT_IMAGE"] = "1"
+        _set_job(
+            job_id,
+            updated_at=_now_iso(),
+            stage="rendering",
+            message="Composing AR tutorial",
+            eta_seconds=40 if fast_preview else 70,
+        )
         result = subprocess.run(
             command,
             cwd=str(_VIDEO_SIM_DIR),
@@ -86,6 +97,7 @@ def _run_video_sim_job(job_id: str, image_path: Path) -> None:
             job_id,
             status="error",
             updated_at=_now_iso(),
+            stage="error",
             message="generator_failed_to_start",
             error=str(exc),
         )
@@ -97,6 +109,7 @@ def _run_video_sim_job(job_id: str, image_path: Path) -> None:
             job_id,
             status="error",
             updated_at=_now_iso(),
+            stage="error",
             message="generator_failed",
             error=(result.stderr or result.stdout or "unknown video simulation error")[:4000],
         )
@@ -104,6 +117,13 @@ def _run_video_sim_job(job_id: str, image_path: Path) -> None:
         return
 
     rendered_path: Path | None = None
+    _set_job(
+        job_id,
+        updated_at=_now_iso(),
+        stage="encoding",
+        message="Encoding tutorial video",
+        eta_seconds=8 if fast_preview else 14,
+    )
     for line in (result.stdout or "").splitlines():
         if line.startswith("Video file: "):
             candidate = Path(line.replace("Video file: ", "", 1).strip())
@@ -126,6 +146,7 @@ def _run_video_sim_job(job_id: str, image_path: Path) -> None:
             job_id,
             status="error",
             updated_at=_now_iso(),
+            stage="error",
             message="render_output_not_found",
             error="video render finished but output file could not be located",
         )
@@ -137,7 +158,9 @@ def _run_video_sim_job(job_id: str, image_path: Path) -> None:
         status="done",
         updated_at=_now_iso(),
         completed_at=_now_iso(),
-        message="video_ready",
+        stage="ready",
+        message="Ready",
+        eta_seconds=0,
         video_path=str(rendered_path),
     )
     logger.info("video-sim job %s complete: %s", job_id, rendered_path)
@@ -155,6 +178,9 @@ async def _extract_image_upload(request: Request) -> UploadFile:
 @router.post("/video-sim/capture")
 async def capture_video_sim(request: Request) -> JSONResponse:
     upload = await _extract_image_upload(request)
+    form = await request.form()
+    fast_preview_raw = str(form.get("fast_preview", "1")).strip().lower()
+    fast_preview = fast_preview_raw not in {"0", "false", "no", "off"}
     if not upload.filename:
         raise HTTPException(status_code=422, detail="uploaded image filename is required")
     content_type = upload.content_type or ""
@@ -178,17 +204,28 @@ async def capture_video_sim(request: Request) -> JSONResponse:
         status="queued",
         created_at=created_at,
         updated_at=created_at,
-        message="upload_received_queued",
+        stage="uploading",
+        message="Upload received",
+        fast_preview=fast_preview,
+        eta_seconds=50 if fast_preview else 85,
         capture_path=str(capture_path),
     )
     logger.info("video-sim job %s queued from upload: %s", job_id, capture_path)
-    worker = threading.Thread(target=_run_video_sim_job, args=(job_id, capture_path), daemon=True)
+    _set_job(
+        job_id,
+        updated_at=_now_iso(),
+        stage="queued",
+        message="Queued for generation",
+    )
+    worker = threading.Thread(target=_run_video_sim_job, args=(job_id, capture_path), kwargs={"fast_preview": fast_preview}, daemon=True)
     worker.start()
     return JSONResponse(
         status_code=202,
         content={
             "job_id": job_id,
             "status": "queued",
+            "stage": "queued",
+            "fast_preview": fast_preview,
             "status_url": f"/api/video-sim/jobs/{job_id}",
             "video_url": f"/api/video-sim/video/{job_id}",
         },
@@ -203,11 +240,14 @@ async def get_video_sim_job(job_id: str) -> JSONResponse:
     payload = {
         "job_id": job_id,
         "status": state.get("status", "unknown"),
+        "stage": state.get("stage"),
         "message": state.get("message", ""),
         "created_at": state.get("created_at"),
         "updated_at": state.get("updated_at"),
         "started_at": state.get("started_at"),
         "completed_at": state.get("completed_at"),
+        "eta_seconds": state.get("eta_seconds"),
+        "fast_preview": bool(state.get("fast_preview", False)),
         "error": state.get("error"),
     }
     start_marker = state.get("started_at") or state.get("created_at")
