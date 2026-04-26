@@ -7,6 +7,7 @@ from typing import Any, AsyncIterator
 from fastapi import FastAPI
 
 from server.api import register_api_middleware
+from server.api.routes import api_router
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ def _load_optional_backends() -> list[str]:
 def create_app() -> FastAPI:
     app = FastAPI(lifespan=app_lifespan)
     register_api_middleware(app)
+    app.include_router(api_router, prefix="/api")
 
     @app.on_event("startup")
     async def log_loaded_backends() -> None:

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import type { OverlayBox, OverlayPath, OverlaySeverity } from "../data/demoScenarios";
+import type { DemoScenarioId, OverlayBox, OverlayPath, OverlaySeverity } from "../data/demoScenarios";
 
 interface DemoOverlayRendererProps {
   overlays: OverlayBox[];
   paths?: OverlayPath[];
+  scenarioId: DemoScenarioId;
 }
 
 const severityClassMap: Record<OverlaySeverity, string> = {
@@ -38,10 +39,12 @@ function RoutePath({ path, index }: { path: OverlayPath; index: number }) {
   );
 }
 
-export function DemoOverlayRenderer({ overlays, paths }: DemoOverlayRendererProps) {
+export function DemoOverlayRenderer({ overlays, paths, scenarioId }: DemoOverlayRendererProps) {
   const [visibleCount, setVisibleCount] = useState(0);
+  const [lockPhase, setLockPhase] = useState<"acquiring" | "locked">("acquiring");
 
   useEffect(() => {
+    setLockPhase("acquiring");
     setVisibleCount(0);
     let current = 0;
     const stepper = window.setInterval(() => {
@@ -51,11 +54,15 @@ export function DemoOverlayRenderer({ overlays, paths }: DemoOverlayRendererProp
         window.clearInterval(stepper);
       }
     }, 240);
-    return () => window.clearInterval(stepper);
+    const lockTimer = window.setTimeout(() => setLockPhase("locked"), 1400);
+    return () => {
+      window.clearInterval(stepper);
+      window.clearTimeout(lockTimer);
+    };
   }, [overlays]);
 
   return (
-    <div className="overlay-layer">
+    <div className={`overlay-layer mode-${scenarioId}`}>
       {paths?.map((path, index) => (
         <RoutePath key={path.id} path={path} index={index} />
       ))}
@@ -65,7 +72,7 @@ export function DemoOverlayRenderer({ overlays, paths }: DemoOverlayRendererProp
         return (
           <div
             key={overlay.id}
-            className={`overlay-box ${severityClassMap[overlay.severity]} ${isVisible ? "visible" : ""}`}
+            className={`overlay-box ${severityClassMap[overlay.severity]} ${isVisible ? "visible" : ""} ${lockPhase}`}
             style={{
               left: `${overlay.x * 100}%`,
               top: `${overlay.y * 100}%`,
@@ -81,9 +88,11 @@ export function DemoOverlayRenderer({ overlays, paths }: DemoOverlayRendererProp
             <div className="overlay-label">
               <span className="overlay-title">{overlay.label}</span>
               <span className="overlay-meta">
-                {overlay.confidence}% • {overlay.severity}
+                {lockPhase === "acquiring" ? "Acquiring anchor..." : `${overlay.confidence}% • ${overlay.severity}`}
               </span>
             </div>
+            <div className="overlay-tether" />
+            <span className="overlay-anchor-dot" />
             {overlay.chip ? <span className="overlay-chip">{overlay.chip}</span> : null}
           </div>
         );
