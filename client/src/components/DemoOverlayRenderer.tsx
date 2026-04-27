@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DemoScenarioId, MonitorRouteItem, OverlayBox, OverlayPath, OverlaySeverity } from "../data/demoScenarios";
 import { WayfindingARLayer } from "./WayfindingARLayer";
 
@@ -144,34 +144,22 @@ function MonitorOverlayLayer({
 
   const activeRoute = activeRoutes[activeRouteIndex];
   const completedRoutes = activeRoutes.slice(0, completedRouteCount);
+  const visibleRoutes = useMemo(
+    () => [...completedRoutes, ...(activeRoute ? [activeRoute] : [])],
+    [activeRoute, completedRoutes],
+  );
 
   return (
     <div className="monitor-overlay-layer">
       <svg className="monitor-route-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {activeRoute ? (
+        {visibleRoutes.map((route, index) => (
           <path
-            key={activeRoute.id}
-            d={monitorRouteToSvgPath(activeRoute.source, activeRoute.destination, activeRoute.points)}
-            className={`monitor-route target-${activeRoute.target}`}
+            key={route.id}
+            d={monitorRouteToSvgPath(route.source, route.destination, route.points)}
+            className={`monitor-route target-${route.target} ${index < completedRoutes.length ? "persisted" : ""}`}
           />
-        ) : null}
+        ))}
       </svg>
-
-      {activeRoute ? (
-        <div
-          key={`${activeRoute.id}-ghost`}
-          className={`monitor-ghost target-${activeRoute.target}`}
-          style={
-            {
-              "--sx": `${activeRoute.source.x * 100}%`,
-              "--sy": `${activeRoute.source.y * 100}%`,
-              "--dx": `${activeRoute.destination.x * 100}%`,
-              "--dy": `${activeRoute.destination.y * 100}%`,
-            } as CSSProperties
-          }
-          title={activeRoute.label}
-        />
-      ) : null}
 
       {activeRoute ? (
         <div
