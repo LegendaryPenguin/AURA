@@ -373,6 +373,14 @@ body {
   object-fit: cover;
 }
 
+.monitor-fix-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .guide-label {
   display: none;
 }
@@ -822,6 +830,11 @@ body {
 .monitor-route.target-trash {
   stroke: #ff9c77;
   filter: drop-shadow(0 0 3px rgba(255, 156, 119, 0.55));
+}
+
+.monitor-route.persisted {
+  animation: none;
+  stroke-dashoffset: 0;
 }
 
 .monitor-ghost {
@@ -1399,6 +1412,7 @@ body {
   0% { transform: translateY(0%); }
   100% { transform: translateY(100%); }
 }
+
 
 @keyframes pulseScan {
   0%, 100% { transform: translateY(-10%); opacity: 0.35; }

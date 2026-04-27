@@ -36,6 +36,7 @@ export function DemoCamera({
   const [error, setError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeStep, setAnalyzeStep] = useState(0);
+  const [monitorOverlayBroken, setMonitorOverlayBroken] = useState(false);
 
   const analyzeSteps = useMemo(
     () => ["Locking spatial anchors", "Projecting overlays"] as const,
@@ -98,6 +99,10 @@ export function DemoCamera({
   useEffect(() => {
     setError(null);
   }, [scenarioId, showLockedResult]);
+
+  useEffect(() => {
+    setMonitorOverlayBroken(false);
+  }, [scenarioId, showLockedResult, lockedCaptureDataUrl]);
 
   const captureFromGuide = (): string | null => {
     const video = videoRef.current;
@@ -191,14 +196,25 @@ export function DemoCamera({
           {showLockedResult && scenario && lockedCaptureDataUrl ? (
             <div className="locked-guide-result">
               <img className="locked-guide-image" src={lockedCaptureDataUrl} alt="Captured guide frame" />
-              <DemoOverlayRenderer
-                overlays={scenario.overlays}
-                paths={scenario.paths}
-                scenarioId={scenarioId}
-                variant="locked"
-                monitorRoutes={scenario.monitorRoutes}
-                monitorDestinations={scenario.monitorDestinations}
-              />
+              {scenarioId === "sustainability" ? (
+                !monitorOverlayBroken ? (
+                  <img
+                    className="monitor-fix-overlay"
+                    src={scenario.referenceImagePath ?? "/demo-scenes/sustainability2.0.png"}
+                    alt=""
+                    onError={() => setMonitorOverlayBroken(true)}
+                  />
+                ) : null
+              ) : (
+                <DemoOverlayRenderer
+                  overlays={scenario.overlays}
+                  paths={scenario.paths}
+                  scenarioId={scenarioId}
+                  variant="locked"
+                  monitorRoutes={scenario.monitorRoutes}
+                  monitorDestinations={scenario.monitorDestinations}
+                />
+              )}
             </div>
           ) : null}
         </div>
